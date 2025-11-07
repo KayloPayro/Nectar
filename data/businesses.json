@@ -7,7 +7,9 @@
     "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
     "rating": 4.7,
     "tags": ["פתוח עכשיו", "קפה טרי", "מאפים"],
-    "offers": ["10% הנחה על קפה", "קנה אחד קבל אחד חינם על מאפים"]
+    "offers": ["10% הנחה על קפה", "קנה אחד קבל אחד חינם על מאפים"],
+    "coordinates": { "lat": 32.0853, "lng": 34.7818 },
+    "categories": ["nearby", "recommended"]
   },
   {
     "id": "2",
@@ -17,7 +19,9 @@
     "image": "https://images.unsplash.com/photo-1550547660-d9450f859349",
     "rating": 4.5,
     "tags": ["חדש ב-Nectar", "משלוחים"],
-    "offers": ["15% הנחה על כל התפריט", "Free drink עם כל המנה"]
+    "offers": ["15% הנחה על כל התפריט", "Free drink עם כל המנה"],
+    "coordinates": { "lat": 31.9690, "lng": 34.8040 },
+    "categories": ["recommended"]
   },
   {
     "id": "3",
@@ -27,6 +31,32 @@
     "image": "https://images.unsplash.com/photo-1558611848-73f7eb4001a1",
     "rating": 4.9,
     "tags": ["פתוח עכשיו", "חדר כושר", "הנחות למנויים"],
-    "offers": ["חודש ראשון חינם", "הנחה על מנוי שנתי"]
+    "offers": ["חודש ראשון חינם", "הנחה על מנוי שנתי"],
+    "coordinates": { "lat": 32.1666, "lng": 34.8415 },
+    "categories": ["nearby", "premium"]
+  },
+  {
+    "id": "4",
+    "name": "Sushi Master",
+    "description": "סושי איכותי עם דגש על טריות ומרקמים מיוחדים.",
+    "address": "רחוב הירקון 45, תל אביב",
+    "image": "https://images.unsplash.com/photo-1553621042-f6e147245754",
+    "rating": 4.8,
+    "tags": ["טרי מידי יום", "מבצעים ללקוחות חדשים"],
+    "offers": ["10% הנחה על כל תפריט הסושי"],
+    "coordinates": { "lat": 32.0900, "lng": 34.7800 },
+    "categories": ["nearby", "recommended", "premium"]
+  },
+  {
+    "id": "5",
+    "name": "Pizza Palace",
+    "description": "פיצות בסגנון איטלקי עם בצק איכותי ורוטב סודי.",
+    "address": "רחוב דיזנגוף 100, תל אביב",
+    "image": "https://images.unsplash.com/photo-1548365328-711dc17a0d3b",
+    "rating": 4.6,
+    "tags": ["משלוחים מהירים", "מבצעי ערב"],
+    "offers": ["2 פיצות ב-50% הנחה"],
+    "coordinates": { "lat": 32.0800, "lng": 34.7800 },
+    "categories": ["nearby", "recommended"]
   }
 ]
