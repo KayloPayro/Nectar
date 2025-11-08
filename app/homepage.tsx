@@ -188,7 +188,10 @@ export default function HomeScreen() {
           <View style={styles.textContainer}>
             <View style={styles.titleRow}>
               <Text style={styles.name}>{item.name}</Text>
-              <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
+              <TouchableOpacity
+                onPress={() => toggleFavorite(item.id)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons
                   name={isFav ? "star" : "star-outline"}
                   size={24}

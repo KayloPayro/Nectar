@@ -1,18 +1,18 @@
+import UserTypeSelector from "@/components/UserTypeSelector";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
   Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import UserTypeSelector from "@/components/UserTypeSelector";
 
 export default function SignupScreen() {
   const router = useRouter();
