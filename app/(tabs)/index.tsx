@@ -1,16 +1,16 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Animated,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => router.push("/businesses")}
+          onPress={() => router.push("/homepage")}
         >
           <Text style={styles.primaryButtonText}>התחבר</Text>
         </TouchableOpacity>

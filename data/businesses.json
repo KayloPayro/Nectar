@@ -20,7 +20,7 @@
     "rating": 4.5,
     "tags": ["חדש ב-Nectar", "משלוחים"],
     "offers": ["15% הנחה על כל התפריט", "Free drink עם כל המנה"],
-    "coordinates": { "lat": 31.9690, "lng": 34.8040 },
+    "coordinates": { "lat": 31.969, "lng": 34.804 },
     "categories": ["recommended"]
   },
   {
@@ -44,7 +44,7 @@
     "rating": 4.8,
     "tags": ["טרי מידי יום", "מבצעים ללקוחות חדשים"],
     "offers": ["10% הנחה על כל תפריט הסושי"],
-    "coordinates": { "lat": 32.0900, "lng": 34.7800 },
+    "coordinates": { "lat": 32.09, "lng": 34.78 },
     "categories": ["nearby", "recommended", "premium"]
   },
   {
@@ -52,11 +52,11 @@
     "name": "Pizza Palace",
     "description": "פיצות בסגנון איטלקי עם בצק איכותי ורוטב סודי.",
     "address": "רחוב דיזנגוף 100, תל אביב",
-    "image": "https://images.unsplash.com/photo-1548365328-711dc17a0d3b",
+    "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170",
     "rating": 4.6,
     "tags": ["משלוחים מהירים", "מבצעי ערב"],
     "offers": ["2 פיצות ב-50% הנחה"],
-    "coordinates": { "lat": 32.0800, "lng": 34.7800 },
+    "coordinates": { "lat": 32.08, "lng": 34.78 },
     "categories": ["nearby", "recommended"]
   }
 ]

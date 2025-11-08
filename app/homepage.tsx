@@ -30,34 +30,31 @@ interface Business {
   categories: string[];
 }
 
+interface Address {
+  id: string;
+  label: string;
+  street: string;
+  city: string;
+  coordinates: { lat: number; lng: number };
+}
+
 // Nectar Color Palette
 const COLORS = {
-  // Primary - Honey & Gold
-  honeyGold: "#F4A259", // צהוב זהב עמוק - CTA, highlights
-  amber: "#F2CC8F", // ענבר בהיר - accents, hover
-
-  // Secondary - Floral & Nature
-  lavenderBlush: "#E0BBE4", // לבנדר רך - cards, overlays
-  mint: "#81C6B5", // מנטה - success, positive actions
-  sage: "#A8DADC", // שקט ירוק-כחול - info, secondary buttons
-
-  // Dark Palette
-  deepPurple: "#2D1B3D", // סגול עמוק - רקע ראשי
-  plum: "#422C50", // שזיף - cards, surfaces
-  midnight: "#1A1423", // כמעט שחור - overlays, modals
-
-  // Text & Neutrals
-  cream: "#FFF8E8", // קרם - טקסט ראשי
-  softWhite: "#F5F1E3", // לבן רך - טקסט משני
-  dustyRose: "#D4A5A5", // ורוד אפור - disabled, placeholders
-
-  // Status
-  success: "#66C9B5", // ירוק בהיר - הצלחה
-  warning: "#FFB84D", // כתום - אזהרה
-  error: "#E07A7A", // אדום רך - שגיאה
+  honeyGold: "#F4A259",
+  amber: "#F2CC8F",
+  lavenderBlush: "#E0BBE4",
+  mint: "#81C6B5",
+  sage: "#A8DADC",
+  deepPurple: "#2D1B3D",
+  plum: "#422C50",
+  midnight: "#1A1423",
+  cream: "#FFF8E8",
+  softWhite: "#F5F1E3",
+  dustyRose: "#D4A5A5",
+  success: "#66C9B5",
+  warning: "#FFB84D",
+  error: "#E07A7A",
 };
-
-const userLocation = { latitude: 32.0853, longitude: 34.7818 };
 
 export default function HomeScreen() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -67,6 +64,31 @@ export default function HomeScreen() {
   const [barcodeModalVisible, setBarcodeModalVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+
+  const [addressDropdownVisible, setAddressDropdownVisible] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<Address>({
+    id: "1",
+    label: "הבית",
+    street: "רחוב הרצל 45",
+    city: "תל אביב",
+    coordinates: { lat: 32.0853, lng: 34.7818 },
+  });
+  const [savedAddresses] = useState<Address[]>([
+    {
+      id: "1",
+      label: "הבית",
+      street: "רחוב הרצל 45",
+      city: "תל אביב",
+      coordinates: { lat: 32.0853, lng: 34.7818 },
+    },
+    {
+      id: "2",
+      label: "העבודה",
+      street: "רחוב רוטשילד 12",
+      city: "תל אביב",
+      coordinates: { lat: 32.0644, lng: 34.7748 },
+    },
+  ]);
 
   useEffect(() => {
     setBusinesses(businessData);
@@ -87,7 +109,6 @@ export default function HomeScreen() {
     }
   }, [searchQuery, businesses]);
 
-  // אנימציה של קו סורק
   useEffect(() => {
     if (barcodeModalVisible) {
       Animated.loop(
@@ -162,8 +183,6 @@ export default function HomeScreen() {
           style={styles.card}
         >
           <Image source={{ uri: item.image }} style={styles.image} />
-
-          {/* Gradient Overlay על התמונה */}
           <View style={styles.imageOverlay} />
 
           <View style={styles.textContainer}>
@@ -212,22 +231,47 @@ export default function HomeScreen() {
   };
 
   const filterByCategory = (category: string) => {
-    let data = filteredBusinesses.filter((b) =>
-      b.categories.includes(category)
-    );
+    // חישוב דינמי של קטגוריות לפי מיקום ודירוג
+    const businessesWithDistance = filteredBusinesses.map((b) => {
+      const distance = getDistance(
+        {
+          latitude: selectedAddress.coordinates.lat,
+          longitude: selectedAddress.coordinates.lng,
+        },
+        {
+          latitude: b.coordinates.lat,
+          longitude: b.coordinates.lng,
+        }
+      );
+      return { ...b, distance };
+    });
+
+    let data: typeof businessesWithDistance = [];
 
     if (category === "nearby") {
-      data = data.filter(
-        (b) =>
-          getDistance(userLocation, {
-            latitude: b.coordinates.lat,
-            longitude: b.coordinates.lng,
-          }) <= 5000
-      );
-    }
-
-    if (category === "favorites") {
-      data = filteredBusinesses.filter((b) => favorites.includes(b.id));
+      // קרוב אליך: מרחק עד 5 ק"מ, ממוין לפי מרחק
+      data = businessesWithDistance
+        .filter((b) => b.distance <= 5000)
+        .sort((a, b) => a.distance - b.distance);
+    } else if (category === "recommended") {
+      // מומלצים: דירוג גבוה (4.5+) וקרובים יחסית (עד 10 ק"מ)
+      // נוסחה: דירוג גבוה + קרוב = יותר מומלץ
+      data = businessesWithDistance
+        .filter((b) => b.rating >= 4.5 && b.distance <= 10000)
+        .sort((a, b) => {
+          // נוסחה משוקללת: דירוג * 1000 - מרחק/10
+          const scoreA = a.rating * 1000 - a.distance / 10;
+          const scoreB = b.rating * 1000 - b.distance / 10;
+          return scoreB - scoreA;
+        });
+    } else if (category === "premium") {
+      // פרימיום: דירוג מעל 4.7 בלי תלות במרחק
+      data = businessesWithDistance
+        .filter((b) => b.rating >= 4.7)
+        .sort((a, b) => b.rating - a.rating);
+    } else if (category === "favorites") {
+      // מועדפים: רק העסקים שהמשתמש סימן
+      data = businessesWithDistance.filter((b) => favorites.includes(b.id));
     }
 
     return data;
@@ -245,7 +289,7 @@ export default function HomeScreen() {
             <Ionicons name={icon as any} size={24} color={COLORS.honeyGold} />
           </View>
           <TouchableOpacity>
-            <Text style={styles.seeAllText}>הכל →</Text>
+            <Text style={styles.seeAllText}>הכל ←</Text>
           </TouchableOpacity>
         </View>
         <FlatList
@@ -255,7 +299,10 @@ export default function HomeScreen() {
           horizontal
           inverted
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
+          contentContainerStyle={{
+            flexDirection: "row-reverse",
+            paddingHorizontal: 16,
+          }}
         />
       </View>
     );
@@ -270,12 +317,91 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.deepPurple} />
 
-      {/* Header מעוצב עם Logo */}
+      {/* Header עם Logo וכתובת */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>Nectar</Text>
-          <Text style={styles.logoSubtext}>🍯 שתף וזכה</Text>
+
+          {/* Address Selector */}
+          <TouchableOpacity
+            style={styles.addressSelector}
+            onPress={() => setAddressDropdownVisible(!addressDropdownVisible)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.addressContent}>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={COLORS.honeyGold}
+                style={{
+                  transform: [
+                    { rotate: addressDropdownVisible ? "180deg" : "0deg" },
+                  ],
+                }}
+              />
+              <View style={styles.addressTextContainer}>
+                <Text style={styles.addressLabel}>{selectedAddress.label}</Text>
+                <Text style={styles.addressText} numberOfLines={1}>
+                  {selectedAddress.street}, {selectedAddress.city}
+                </Text>
+              </View>
+              <Ionicons name="location" size={20} color={COLORS.honeyGold} />
+            </View>
+          </TouchableOpacity>
         </View>
+
+        {/* Dropdown רשימת כתובות */}
+        {addressDropdownVisible && (
+          <View style={styles.addressDropdown}>
+            {savedAddresses.map((address) => (
+              <TouchableOpacity
+                key={address.id}
+                style={[
+                  styles.addressItem,
+                  selectedAddress.id === address.id && styles.addressItemActive,
+                ]}
+                onPress={() => {
+                  setSelectedAddress(address);
+                  setAddressDropdownVisible(false);
+                }}
+              >
+                <View style={styles.addressItemContent}>
+                  <Ionicons
+                    name={
+                      selectedAddress.id === address.id
+                        ? "checkmark-circle"
+                        : "location-outline"
+                    }
+                    size={22}
+                    color={
+                      selectedAddress.id === address.id
+                        ? COLORS.mint
+                        : COLORS.dustyRose
+                    }
+                  />
+                  <View style={styles.addressItemText}>
+                    <Text style={styles.addressItemLabel}>{address.label}</Text>
+                    <Text style={styles.addressItemAddress}>
+                      {address.street}, {address.city}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* כפתור הוסף כתובת חדשה */}
+            <TouchableOpacity
+              style={styles.addAddressButton}
+              onPress={() => {
+                setAddressDropdownVisible(false);
+                alert("פתיחת מסך הוספת כתובת חדשה");
+              }}
+            >
+              <Ionicons name="add-circle" size={22} color={COLORS.honeyGold} />
+              <Text style={styles.addAddressText}>הוסף כתובת חדשה</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Search Bar + Barcode Button */}
@@ -341,7 +467,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Overlay עם הדרכה */}
+          {/* Overlay */}
           <View style={styles.barcodeOverlay}>
             <View style={styles.overlayTop}>
               <Text style={styles.instructionText}>
@@ -354,18 +480,15 @@ export default function HomeScreen() {
               <View style={styles.overlaySide} />
 
               <View style={styles.scanBox}>
-                {/* פינות מעוצבות בסגנון דבש */}
                 <View style={[styles.corner, styles.cornerTopLeft]} />
                 <View style={[styles.corner, styles.cornerTopRight]} />
                 <View style={[styles.corner, styles.cornerBottomLeft]} />
                 <View style={[styles.corner, styles.cornerBottomRight]} />
 
-                {/* Hexagon pattern (כוורת) */}
                 <View style={styles.hexagonContainer}>
                   <Text style={styles.hexagonText}>🐝</Text>
                 </View>
 
-                {/* קו סורק */}
                 <Animated.View
                   style={[
                     styles.scanLine,
@@ -380,7 +503,6 @@ export default function HomeScreen() {
             <View style={styles.overlayBottom} />
           </View>
 
-          {/* כפתור סגירה */}
           <TouchableOpacity
             onPress={() => setBarcodeModalVisible(false)}
             style={styles.closeButton}
@@ -400,11 +522,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.deepPurple,
   },
 
-  // Header
+  // Header & Address
   header: {
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
     paddingHorizontal: 20,
+    zIndex: 1000,
   },
   logoContainer: {
     flexDirection: "row",
@@ -419,13 +542,91 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
-  logoSubtext: {
-    fontSize: 14,
-    color: COLORS.softWhite,
+  addressSelector: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  addressContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: COLORS.plum,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.lavenderBlush + "30",
+    gap: 8,
+  },
+  addressTextContainer: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  addressLabel: {
+    fontSize: 12,
+    color: COLORS.dustyRose,
     fontWeight: "600",
   },
+  addressText: {
+    fontSize: 14,
+    color: COLORS.cream,
+    fontWeight: "700",
+  },
+  addressDropdown: {
+    marginTop: 8,
+    backgroundColor: COLORS.plum,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.lavenderBlush + "30",
+    overflow: "hidden",
+    shadowColor: COLORS.midnight,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  addressItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.deepPurple + "50",
+  },
+  addressItemActive: {
+    backgroundColor: COLORS.mint + "15",
+  },
+  addressItemContent: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+  },
+  addressItemText: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  addressItemLabel: {
+    fontSize: 16,
+    color: COLORS.cream,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  addressItemAddress: {
+    fontSize: 13,
+    color: COLORS.dustyRose,
+  },
+  addAddressButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 8,
+    backgroundColor: COLORS.deepPurple + "50",
+  },
+  addAddressText: {
+    fontSize: 15,
+    color: COLORS.honeyGold,
+    fontWeight: "700",
+  },
 
-  // Search Container
+  // Search
   searchContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
@@ -471,14 +672,14 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   categoryHeader: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
     marginBottom: 14,
   },
   categoryTitleRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
   },
