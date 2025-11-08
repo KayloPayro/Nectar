@@ -2,61 +2,170 @@
   {
     "id": "1",
     "name": "Coffee Corner",
-    "description": "בית קפה שכונתי באווירה חמימה עם קפה טרי ומאפים ייחודיים.",
+    "description": "בית קפה שכונתי באווירה חמימה עם קפה טרי ומאפים ייחודיים. המקום המושלם לבילוי עם חברים או עבודה שקטה.",
     "address": "רחוב התמר 12, תל אביב",
     "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+    "logo": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200",
     "rating": 4.7,
+    "reviewCount": 234,
     "tags": ["פתוח עכשיו", "קפה טרי", "מאפים"],
-    "offers": ["10% הנחה על קפה", "קנה אחד קבל אחד חינם על מאפים"],
     "coordinates": { "lat": 32.0853, "lng": 34.7818 },
-    "categories": ["nearby", "recommended"]
+    "offers": [
+      {
+        "id": "1-1",
+        "title": "קפה חינם לחבר",
+        "description": "הבא חבר חדש וקבל קפה חינם בפעם הבאה",
+        "reward": "קפה אמריקנו גדול",
+        "requiredReferrals": 1,
+        "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+        "terms": "ההטבה תקפה למשך 30 יום מרגע יצירת הקוד. ניתן למימוש פעם אחת בלבד לכל משתמש. החבר שהוזמן חייב להזמין לפחות פעם אחת כדי שתקבל את התגמול."
+      },
+      {
+        "id": "1-2",
+        "title": "3 חברים = ארוחת בוקר",
+        "description": "הזמן 3 חברים וקבל ארוחת בוקר מלאה",
+        "reward": "ארוחת בוקר זוגית",
+        "requiredReferrals": 3,
+        "image": "https://images.unsplash.com/photo-1533777857889-4be7c70b0c5e",
+        "terms": "תקף למשך 60 יום. 3 חברים חייבים להזמין לפחות פעם אחת כל אחד. הארוחה כוללת: ביצים, סלט, משקה חם ומאפה."
+      },
+      {
+        "id": "1-3",
+        "title": "5 חברים = שובר 100 ₪",
+        "description": "מי שמביא 5 חברים זוכה בשובר של 100 ₪",
+        "reward": "שובר בשווי 100 ₪",
+        "requiredReferrals": 5,
+        "image": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+        "terms": "השובר תקף למשך 90 יום. ניתן לשימוש על כל התפריט. לא ניתן להחלפה במזומן. 5 חברים חייבים לבצע הזמנה של מעל 50 ₪ כל אחד."
+      }
+    ]
   },
   {
     "id": "2",
     "name": "Burger House",
-    "description": "המבורגרים בעבודת יד עם טעמים ייחודיים ורטבים מקוריים.",
+    "description": "המבורגרים בעבודת יד עם טעמים ייחודיים ורטבים מקוריים. כל המבורגר מוכן במקום מבשר טרי ואיכותי.",
     "address": "רחוב החרוב 5, ראשון לציון",
     "image": "https://images.unsplash.com/photo-1550547660-d9450f859349",
+    "logo": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=200",
     "rating": 4.5,
+    "reviewCount": 189,
     "tags": ["חדש ב-Nectar", "משלוחים"],
-    "offers": ["15% הנחה על כל התפריט", "Free drink עם כל המנה"],
     "coordinates": { "lat": 31.969, "lng": 34.804 },
-    "categories": ["recommended"]
+    "offers": [
+      {
+        "id": "2-1",
+        "title": "המבורגר במתנה",
+        "description": "הזמן חבר אחד וקבל המבורגר חינם",
+        "reward": "המבורגר קלאסי",
+        "requiredReferrals": 1,
+        "image": "https://images.unsplash.com/photo-1550547660-d9450f859349",
+        "terms": "תקף 30 יום. החבר חייב להזמין ארוחה מלאה. ההמבורגר החינם מהתפריט הרגיל בלבד."
+      },
+      {
+        "id": "2-2",
+        "title": "2 חברים = ארוחת זוג",
+        "description": "שני חברים = ארוחת זוג מלאה",
+        "reward": "2 המבורגרים + צ'יפס + משקאות",
+        "requiredReferrals": 2,
+        "image": "https://images.unsplash.com/photo-1586190848861-99aa4a171e90",
+        "terms": "תקף 45 יום. 2 החברים חייבים להזמין לפחות פעם אחת כל אחד במסעדה."
+      }
+    ]
   },
   {
     "id": "3",
     "name": "Fitness Club",
-    "description": "מועדון כושר מתקדם עם מאמנים אישיים וציוד חדשני.",
+    "description": "מועדון כושר מתקדם עם מאמנים אישיים וציוד חדשני. מגוון רחב של שיעורים קבוצתיים ותוכניות אימון מותאמות אישית.",
     "address": "רחוב הדקל 3, הרצליה",
     "image": "https://images.unsplash.com/photo-1558611848-73f7eb4001a1",
+    "logo": "https://images.unsplash.com/photo-1558611848-73f7eb4001a1?w=200",
     "rating": 4.9,
+    "reviewCount": 412,
     "tags": ["פתוח עכשיו", "חדר כושר", "הנחות למנויים"],
-    "offers": ["חודש ראשון חינם", "הנחה על מנוי שנתי"],
     "coordinates": { "lat": 32.1666, "lng": 34.8415 },
-    "categories": ["nearby", "premium"]
+    "offers": [
+      {
+        "id": "3-1",
+        "title": "חודש חינם",
+        "description": "הבא חבר וקבל חודש מנוי חינם",
+        "reward": "מנוי חודשי מלא",
+        "requiredReferrals": 1,
+        "image": "https://images.unsplash.com/photo-1558611848-73f7eb4001a1",
+        "terms": "החבר חייב לרכוש מנוי של 3 חודשים לפחות. החודש החינם יינתן לאחר תשלום החבר."
+      },
+      {
+        "id": "3-2",
+        "title": "3 חברים = 3 חודשים",
+        "description": "3 חברים מביאים לך 3 חודשי מנוי חינם",
+        "reward": "מנוי רבעוני מלא",
+        "requiredReferrals": 3,
+        "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+        "terms": "כל חבר חייב לרכוש מנוי של 6 חודשים לפחות. המנוי החינם יינתן בשלושה תשלומים."
+      }
+    ]
   },
   {
     "id": "4",
     "name": "Sushi Master",
-    "description": "סושי איכותי עם דגש על טריות ומרקמים מיוחדים.",
+    "description": "סושי איכותי עם דגש על טריות ומרקמים מיוחדים. השף שלנו מביא את המסורת היפנית המקורית לישראל.",
     "address": "רחוב הירקון 45, תל אביב",
     "image": "https://images.unsplash.com/photo-1553621042-f6e147245754",
+    "logo": "https://images.unsplash.com/photo-1553621042-f6e147245754?w=200",
     "rating": 4.8,
+    "reviewCount": 298,
     "tags": ["טרי מידי יום", "מבצעים ללקוחות חדשים"],
-    "offers": ["10% הנחה על כל תפריט הסושי"],
     "coordinates": { "lat": 32.09, "lng": 34.78 },
-    "categories": ["nearby", "recommended", "premium"]
+    "offers": [
+      {
+        "id": "4-1",
+        "title": "מגש סושי במתנה",
+        "description": "חבר אחד = מגש סושי 20 יח'",
+        "reward": "מגש סושי אסורטי 20 יחידות",
+        "requiredReferrals": 1,
+        "image": "https://images.unsplash.com/photo-1553621042-f6e147245754",
+        "terms": "תקף 30 יום. החבר חייב להזמין הזמנה מעל 150 ₪. המגש במתנה מהתפריט הרגיל."
+      },
+      {
+        "id": "4-2",
+        "title": "2 חברים = ארוחה זוגית",
+        "description": "שני חברים מזמינים = ארוחת סושי זוגית",
+        "reward": "ארוחת סושי זוגית מלאה",
+        "requiredReferrals": 2,
+        "image": "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351",
+        "terms": "כולל: 2 מגשי סושי, 2 סלטים, 2 משקאות. תקף 60 יום."
+      }
+    ]
   },
   {
     "id": "5",
     "name": "Pizza Palace",
-    "description": "פיצות בסגנון איטלקי עם בצק איכותי ורוטב סודי.",
+    "description": "פיצות בסגנון איטלקי עם בצק איכותי ורוטב סודי. הפיצות שלנו נאפות בתנור אבן מסורתי בטמפרטורה גבוהה.",
     "address": "רחוב דיזנגוף 100, תל אביב",
-    "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170",
+    "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+    "logo": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200",
     "rating": 4.6,
+    "reviewCount": 276,
     "tags": ["משלוחים מהירים", "מבצעי ערב"],
-    "offers": ["2 פיצות ב-50% הנחה"],
     "coordinates": { "lat": 32.08, "lng": 34.78 },
-    "categories": ["nearby", "recommended"]
+    "offers": [
+      {
+        "id": "5-1",
+        "title": "פיצה במתנה",
+        "description": "הזמן חבר וקבל פיצה משפחתית",
+        "reward": "פיצה משפחתית לבחירה",
+        "requiredReferrals": 1,
+        "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+        "terms": "תקף 30 יום. החבר חייב להזמין הזמנה מעל 80 ₪. הפיצה במתנה מהתפריט הרגיל בלבד."
+      },
+      {
+        "id": "5-2",
+        "title": "3 חברים = ארוחת משפחה",
+        "description": "3 חברים = ארוחה מלאה למשפחה",
+        "reward": "3 פיצות משפחתיות + תוספות",
+        "requiredReferrals": 3,
+        "image": "https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f",
+        "terms": "כולל: 3 פיצות משפחתיות, סלט, לחם שום, 1.5 ליטר משקה. תקף 60 יום."
+      }
+    ]
   }
 ]

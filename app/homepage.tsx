@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
 import Fuse from "fuse.js";
 import { getDistance } from "geolib";
 import React, { useEffect, useRef, useState } from "react";
@@ -24,10 +25,25 @@ interface Business {
   description: string;
   address: string;
   image: string;
+  logo: string;
   rating: number;
+  reviewCount: number;
   tags: string[];
-  coordinates: { lat: number; lng: number };
-  categories: string[];
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  offers: Offer[];
+}
+
+interface Offer {
+  id: string;
+  title: string;
+  description: string;
+  reward: string;
+  requiredReferrals: number;
+  image: string;
+  terms: string;
 }
 
 interface Address {
@@ -57,6 +73,7 @@ const COLORS = {
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,6 +191,14 @@ export default function HomeScreen() {
       }).start();
     };
 
+    const handleCardPress = () => {
+      // Navigate to business screen with ID parameter
+      router.push({
+        pathname: "/business/[id]" as any,
+        params: { id: item.id, name: item.name },
+      } as any);
+    };
+
     return (
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <TouchableOpacity
@@ -181,6 +206,7 @@ export default function HomeScreen() {
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.card}
+          onPress={handleCardPress}
         >
           <Image source={{ uri: item.image }} style={styles.image} />
           <View style={styles.imageOverlay} />
