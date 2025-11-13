@@ -1,9 +1,23 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { AuthService } from "../../services/authService"; // ✅ שימוש נכון לפי המבנה שלך
 
 export default function MainScreen() {
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+      Alert.alert("התנתקת בהצלחה");
+
+      // לאחר ההתנתקות, ננווט חזרה למסך ההתחברות
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      Alert.alert("שגיאה", "משהו השתבש במהלך ההתנתקות");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -21,6 +35,14 @@ export default function MainScreen() {
         onPress={() => router.push("/homepage")}
       >
         <Text style={styles.buttonText}>אפליקציה</Text>
+      </TouchableOpacity>
+
+      {/* כפתור ההתנתקות */}
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#E76F51" }]}
+        onPress={handleLogout}
+      >
+        <Text style={[styles.buttonText, { color: "#FFF" }]}>התנתק</Text>
       </TouchableOpacity>
     </View>
   );
