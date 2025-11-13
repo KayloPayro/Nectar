@@ -1,14 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { useRouter } from "expo-router";
-import Fuse from "fuse.js";
+import Fuse from "fuse.js"; 
 import { getDistance } from "geolib";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Animated,
   FlatList,
   Image,
-  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,8 +13,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
 import businessData from "../data/businesses.json";
+import { AuthService, User, UserData, Address as UserAddress, Address } from "../services/authService";
 
 interface Business {
   id: string;
@@ -25,32 +26,8 @@ interface Business {
   description: string;
   address: string;
   image: string;
-  logo: string;
   rating: number;
-  reviewCount: number;
   tags: string[];
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  offers: Offer[];
-}
-
-interface Offer {
-  id: string;
-  title: string;
-  description: string;
-  reward: string;
-  requiredReferrals: number;
-  image: string;
-  terms: string;
-}
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
   coordinates: { lat: number; lng: number };
 }
 
@@ -81,36 +58,37 @@ export default function HomeScreen() {
   const [barcodeModalVisible, setBarcodeModalVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scanLineAnim = useRef(new Animated.Value(0)).current;
-
+  
   const [addressDropdownVisible, setAddressDropdownVisible] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<Address>({
-    id: "1",
-    label: "הבית",
-    street: "רחוב הרצל 45",
-    city: "תל אביב",
-    coordinates: { lat: 32.0853, lng: 34.7818 },
-  });
-  const [savedAddresses] = useState<Address[]>([
-    {
-      id: "1",
-      label: "הבית",
-      street: "רחוב הרצל 45",
-      city: "תל אביב",
-      coordinates: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-      id: "2",
-      label: "העבודה",
-      street: "רחוב רוטשילד 12",
-      city: "תל אביב",
-      coordinates: { lat: 32.0644, lng: 34.7748 },
-    },
-  ]);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
 
   useEffect(() => {
+    loadUserData();
     setBusinesses(businessData);
     setFilteredBusinesses(businessData);
   }, []);
+
+  const loadUserData = async () => {
+    const user = await AuthService.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      const data = await AuthService.getUserData(user.id);
+      setUserData(data);
+      setFavorites(data.favorites);
+      setSavedAddresses(data.addresses);
+      
+      // Set selected address
+      if (data.selectedAddressId) {
+        const addr = data.addresses.find(a => a.id === data.selectedAddressId);
+        if (addr) {
+          setSelectedAddress(addr);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -147,10 +125,17 @@ export default function HomeScreen() {
     }
   }, [barcodeModalVisible]);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
+  const toggleFavorite = async (id: string) => {
+    if (!currentUser) return;
+    
+    const isFav = favorites.includes(id);
+    if (isFav) {
+      await AuthService.removeFavorite(currentUser.id, id);
+      setFavorites(prev => prev.filter(f => f !== id));
+    } else {
+      await AuthService.addFavorite(currentUser.id, id);
+      setFavorites(prev => [...prev, id]);
+    }
   };
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
@@ -160,7 +145,7 @@ export default function HomeScreen() {
 
   const handleOpenCamera = async () => {
     if (!permission) return;
-
+    
     if (!permission.granted) {
       const { granted } = await requestPermission();
       if (!granted) {
@@ -195,7 +180,7 @@ export default function HomeScreen() {
       // Navigate to business screen with ID parameter
       router.push({
         pathname: "/business/[id]" as any,
-        params: { id: item.id, name: item.name },
+        params: { id: item.id, name: item.name }
       } as any);
     };
 
@@ -214,10 +199,7 @@ export default function HomeScreen() {
           <View style={styles.textContainer}>
             <View style={styles.titleRow}>
               <Text style={styles.name}>{item.name}</Text>
-              <TouchableOpacity
-                onPress={() => toggleFavorite(item.id)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
+              <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
                 <Ionicons
                   name={isFav ? "star" : "star-outline"}
                   size={24}
@@ -261,17 +243,15 @@ export default function HomeScreen() {
 
   const filterByCategory = (category: string) => {
     // חישוב דינמי של קטגוריות לפי מיקום ודירוג
+    const userCoords = selectedAddress 
+      ? { latitude: selectedAddress.coordinates.lat, longitude: selectedAddress.coordinates.lng }
+      : { latitude: 32.0853, longitude: 34.7818 }; // Default Tel Aviv
+
     const businessesWithDistance = filteredBusinesses.map((b) => {
-      const distance = getDistance(
-        {
-          latitude: selectedAddress.coordinates.lat,
-          longitude: selectedAddress.coordinates.lng,
-        },
-        {
-          latitude: b.coordinates.lat,
-          longitude: b.coordinates.lng,
-        }
-      );
+      const distance = getDistance(userCoords, {
+        latitude: b.coordinates.lat,
+        longitude: b.coordinates.lng,
+      });
       return { ...b, distance };
     });
 
@@ -284,11 +264,9 @@ export default function HomeScreen() {
         .sort((a, b) => a.distance - b.distance);
     } else if (category === "recommended") {
       // מומלצים: דירוג גבוה (4.5+) וקרובים יחסית (עד 10 ק"מ)
-      // נוסחה: דירוג גבוה + קרוב = יותר מומלץ
       data = businessesWithDistance
         .filter((b) => b.rating >= 4.5 && b.distance <= 10000)
         .sort((a, b) => {
-          // נוסחה משוקללת: דירוג * 1000 - מרחק/10
           const scoreA = a.rating * 1000 - a.distance / 10;
           const scoreB = b.rating * 1000 - b.distance / 10;
           return scoreB - scoreA;
@@ -350,7 +328,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>Nectar</Text>
-
+          
           {/* Address Selector */}
           <TouchableOpacity
             style={styles.addressSelector}
@@ -369,10 +347,16 @@ export default function HomeScreen() {
                 }}
               />
               <View style={styles.addressTextContainer}>
-                <Text style={styles.addressLabel}>{selectedAddress.label}</Text>
-                <Text style={styles.addressText} numberOfLines={1}>
-                  {selectedAddress.street}, {selectedAddress.city}
-                </Text>
+                {selectedAddress ? (
+                  <>
+                    <Text style={styles.addressLabel}>{selectedAddress.label}</Text>
+                    <Text style={styles.addressText} numberOfLines={1}>
+                      {selectedAddress.street}, {selectedAddress.city}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.addressText}>הוסף כתובת</Text>
+                )}
               </View>
               <Ionicons name="location" size={20} color={COLORS.honeyGold} />
             </View>
@@ -387,23 +371,26 @@ export default function HomeScreen() {
                 key={address.id}
                 style={[
                   styles.addressItem,
-                  selectedAddress.id === address.id && styles.addressItemActive,
+                  selectedAddress?.id === address.id && styles.addressItemActive,
                 ]}
-                onPress={() => {
+                onPress={async () => {
                   setSelectedAddress(address);
                   setAddressDropdownVisible(false);
+                  if (currentUser) {
+                    await AuthService.selectAddress(currentUser.id, address.id);
+                  }
                 }}
               >
                 <View style={styles.addressItemContent}>
                   <Ionicons
                     name={
-                      selectedAddress.id === address.id
+                      selectedAddress?.id === address.id
                         ? "checkmark-circle"
                         : "location-outline"
                     }
                     size={22}
                     color={
-                      selectedAddress.id === address.id
+                      selectedAddress?.id === address.id
                         ? COLORS.mint
                         : COLORS.dustyRose
                     }
@@ -423,7 +410,7 @@ export default function HomeScreen() {
               style={styles.addAddressButton}
               onPress={() => {
                 setAddressDropdownVisible(false);
-                alert("פתיחת מסך הוספת כתובת חדשה");
+                alert("פתיחת מסך הוספת כתובת חדשה - בפיתוח");
               }}
             >
               <Ionicons name="add-circle" size={22} color={COLORS.honeyGold} />
@@ -458,7 +445,7 @@ export default function HomeScreen() {
       {/* Categories */}
       {favorites.length > 0 &&
         renderCategory("המועדפים שלך", "favorites", "heart")}
-
+      
       {renderCategory("קרוב אליך", "nearby", "location")}
       {renderCategory("עסקים מומלצים", "recommended", "flame")}
       {renderCategory("הכי פופולריים", "premium", "trophy")}
@@ -550,7 +537,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.deepPurple,
   },
-
+  
   // Header & Address
   header: {
     paddingTop: 16,
@@ -563,6 +550,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  logoRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+  },
   logoText: {
     fontSize: 32,
     fontWeight: "800",
@@ -570,6 +562,14 @@ const styles = StyleSheet.create({
     textShadowColor: COLORS.amber,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
+  },
+  logoutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.plum,
+    justifyContent: "center",
+    alignItems: "center",
   },
   addressSelector: {
     flex: 1,
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     color: COLORS.honeyGold,
     fontWeight: "700",
   },
-
+  
   // Search
   searchContainer: {
     flexDirection: "row-reverse",
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     color: COLORS.cream,
     textAlign: "right",
   },
-
+  
   // Category
   categoryContainer: {
     marginBottom: 28,
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     color: COLORS.amber,
     fontWeight: "600",
   },
-
+  
   // Card
   card: {
     width: 240,
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     color: COLORS.sage,
     fontWeight: "500",
   },
-
+  
   // Barcode Scanner
   barcodeModal: {
     flex: 1,

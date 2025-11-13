@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import businessData from "../../data/businesses.json";
+import { AuthService, User } from "../../services/authService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -72,17 +73,34 @@ export default function BusinessScreen() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [couponName, setCouponName] = useState("USER123");
+  const [couponName, setCouponName] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
 
-  // Load business from JSON
+  // Load business and user from JSON
   useEffect(() => {
+    loadUserAndBusiness();
+  }, [businessId]);
+
+  const loadUserAndBusiness = async () => {
+    // Load user
+    const user = await AuthService.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      setCouponName(user.name.toUpperCase().replace(/\s/g, ""));
+
+      // Check if business is favorite
+      const userData = await AuthService.getUserData(user.id);
+      setIsFavorite(userData.favorites.includes(businessId));
+    }
+
+    // Load business
     console.log("Looking for business ID:", businessId);
     console.log(
       "Available businesses:",
@@ -100,7 +118,7 @@ export default function BusinessScreen() {
       alert("העסק לא נמצא");
       router.back();
     }
-  }, [businessId]);
+  };
 
   useEffect(() => {
     if (bottomSheetVisible) {
@@ -150,8 +168,15 @@ export default function BusinessScreen() {
     }
   }, [successModalVisible]);
 
-  const handleCreateCode = () => {
-    if (!acceptedTerms || !couponName.trim()) return;
+  const handleCreateCode = async () => {
+    if (
+      !acceptedTerms ||
+      !couponName.trim() ||
+      !currentUser ||
+      !business ||
+      !selectedOffer
+    )
+      return;
 
     // Generate code
     const code = `NECTAR-${couponName.toUpperCase()}-${Math.random()
@@ -159,8 +184,31 @@ export default function BusinessScreen() {
       .substr(2, 6)
       .toUpperCase()}`;
     setGeneratedCode(code);
+
+    // Save to user data
+    await AuthService.saveGeneratedCode(
+      currentUser.id,
+      business.id,
+      business.name,
+      selectedOffer.id,
+      selectedOffer.title,
+      code
+    );
+
     setBottomSheetVisible(false);
     setSuccessModalVisible(true);
+  };
+
+  const toggleFavorite = async () => {
+    if (!currentUser || !business) return;
+
+    if (isFavorite) {
+      await AuthService.removeFavorite(currentUser.id, business.id);
+      setIsFavorite(false);
+    } else {
+      await AuthService.addFavorite(currentUser.id, business.id);
+      setIsFavorite(true);
+    }
   };
 
   const handleCopyCode = () => {
@@ -241,7 +289,7 @@ export default function BusinessScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => setIsFavorite(!isFavorite)}
+            onPress={toggleFavorite}
           >
             <Ionicons
               name={isFavorite ? "heart" : "heart-outline"}
@@ -501,17 +549,6 @@ export default function BusinessScreen() {
 }
 
 const styles = StyleSheet.create({
-  noOffersContainer: {
-    paddingVertical: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  noOffersText: {
-    fontSize: 16,
-    color: COLORS.lavenderBlush,
-    textAlign: "center",
-    opacity: 0.8,
-  },
   container: {
     flex: 1,
     backgroundColor: COLORS.deepPurple,
@@ -619,6 +656,27 @@ const styles = StyleSheet.create({
     color: COLORS.softWhite,
     flex: 1,
     textAlign: "right",
+  },
+  address: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.sage,
+    fontWeight: "500",
+  },
+  noOffersContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  noOffersText: {
+    fontSize: 16,
+    color: COLORS.dustyRose,
+    textAlign: "center",
+  },
+
+  // Barcode Scanner
+  barcodeModal: {
+    flex: 1,
+    backgroundColor: COLORS.midnight,
   },
   offersSection: {
     padding: 20,
