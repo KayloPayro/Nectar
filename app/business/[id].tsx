@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
   Modal,
+  PanResponder,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -21,6 +22,9 @@ import businessData from "../../data/businesses.json";
 import { AuthService, User } from "../../services/authService";
 
 const { width, height } = Dimensions.get("window");
+const HEADER_MAX_HEIGHT = 300;
+const HEADER_MIN_HEIGHT = 80;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 // Nectar Colors
 const COLORS = {
@@ -82,6 +86,44 @@ export default function BusinessScreen() {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const sheetY = useRef(new Animated.Value(0)).current;
+
+  // PanResponder for bottom sheet drag
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          sheetY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150) {
+          // Close sheet
+          Animated.timing(sheetY, {
+            toValue: height,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => {
+            setBottomSheetVisible(false);
+            sheetY.setValue(0);
+          });
+        } else {
+          // Snap back
+          Animated.spring(sheetY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 8,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // Load business and user from JSON
   useEffect(() => {
@@ -122,6 +164,7 @@ export default function BusinessScreen() {
 
   useEffect(() => {
     if (bottomSheetVisible) {
+      sheetY.setValue(0);
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
@@ -241,6 +284,31 @@ export default function BusinessScreen() {
     business.coordinates
   );
 
+  // Header animations
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: "clamp",
+  });
+
+  const imageOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.5, 0],
+    extrapolate: "clamp",
+  });
+
+  const imageScale = scrollY.interpolate({
+    inputRange: [-100, 0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1.3, 1, 1],
+    extrapolate: "clamp",
+  });
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
   const renderOfferCard = ({ item }: { item: Offer }) => (
     <TouchableOpacity
       style={styles.offerCard}
@@ -273,9 +341,20 @@ export default function BusinessScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.deepPurple} />
 
-      {/* Header with Image */}
-      <View style={styles.headerImageContainer}>
-        <Image source={{ uri: business.image }} style={styles.headerImage} />
+      {/* Animated Header */}
+      <Animated.View
+        style={[styles.headerImageContainer, { height: headerHeight }]}
+      >
+        <Animated.Image
+          source={{ uri: business.image }}
+          style={[
+            styles.headerImage,
+            {
+              opacity: imageOpacity,
+              transform: [{ scale: imageScale }],
+            },
+          ]}
+        />
         <View style={styles.headerOverlay} />
 
         {/* Top Actions */}
@@ -286,6 +365,12 @@ export default function BusinessScreen() {
           >
             <Ionicons name="arrow-forward" size={24} color={COLORS.cream} />
           </TouchableOpacity>
+
+          <Animated.Text
+            style={[styles.headerTitle, { opacity: titleOpacity }]}
+          >
+            {business.name}
+          </Animated.Text>
 
           <TouchableOpacity
             style={styles.actionButton}
@@ -298,11 +383,16 @@ export default function BusinessScreen() {
             />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
       >
         {/* Business Info */}
         <View style={styles.infoSection}>
@@ -362,9 +452,9 @@ export default function BusinessScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet with drag */}
       {bottomSheetVisible && selectedOffer && (
         <Animated.View
           style={[styles.bottomSheetOverlay, { opacity: fadeAnim }]}
@@ -381,10 +471,17 @@ export default function BusinessScreen() {
         <Animated.View
           style={[
             styles.bottomSheet,
-            { transform: [{ translateY: slideAnim }] },
+            {
+              transform: [{ translateY: Animated.add(slideAnim, sheetY) }],
+            },
           ]}
         >
-          <View style={styles.sheetHandle} />
+          <View
+            style={styles.sheetHandleContainer}
+            {...panResponder.panHandlers}
+          >
+            <View style={styles.sheetHandle} />
+          </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.sheetContent}>
@@ -768,15 +865,17 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     maxHeight: height * 0.85,
+  },
+  sheetHandleContainer: {
     paddingTop: 12,
+    paddingBottom: 8,
+    alignItems: "center",
   },
   sheetHandle: {
     width: 50,
     height: 5,
     backgroundColor: COLORS.dustyRose,
     borderRadius: 3,
-    alignSelf: "center",
-    marginBottom: 20,
   },
   sheetContent: {
     padding: 24,
@@ -1021,5 +1120,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.dustyRose,
     fontWeight: "600",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.cream,
+    textAlign: "center",
   },
 });

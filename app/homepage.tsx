@@ -18,7 +18,7 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import businessData from "../data/businesses.json";
-import { AuthService, User, UserData, Address as UserAddress, Address } from "../services/authService";
+import { AuthService, User, UserData, Address as UserAddress } from "../services/authService";
 
 interface Business {
   id: string;
@@ -49,6 +49,102 @@ const COLORS = {
   error: "#E07A7A",
 };
 
+// קומפוננטה נפרדת לכרטיס עסק
+const BusinessCard = ({ 
+  item, 
+  isFavorite, 
+  onToggleFavorite,
+  onPress 
+}: { 
+  item: Business;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onPress: () => void;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: fadeAnim }}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={styles.card}
+        onPress={onPress}
+      >
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <View style={styles.imageOverlay} />
+
+        <View style={styles.textContainer}>
+          <View style={styles.titleRow}>
+            <Text style={styles.name}>{item.name}</Text>
+            <TouchableOpacity onPress={onToggleFavorite}>
+              <Ionicons
+                name={isFavorite ? "star" : "star-outline"}
+                size={24}
+                color={isFavorite ? COLORS.honeyGold : COLORS.dustyRose}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.description} numberOfLines={2}>
+            {item.description}
+          </Text>
+
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={16} color={COLORS.honeyGold} />
+            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+            <View style={styles.ratingBadge}>
+              <Ionicons name="people" size={12} color={COLORS.mint} />
+              <Text style={styles.ratingBadgeText}>מומלץ</Text>
+            </View>
+          </View>
+
+          <View style={styles.tagsContainer}>
+            {item.tags.slice(0, 3).map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.addressRow}>
+            <Ionicons name="location" size={14} color={COLORS.sage} />
+            <Text style={styles.address} numberOfLines={1}>
+              {item.address}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -60,15 +156,15 @@ export default function HomeScreen() {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   
   const [addressDropdownVisible, setAddressDropdownVisible] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
 
   useEffect(() => {
     loadUserData();
-    setBusinesses(businessData);
-    setFilteredBusinesses(businessData);
+    setBusinesses(businessData as any);
+    setFilteredBusinesses(businessData as any);
   }, []);
 
   const loadUserData = async () => {
@@ -156,96 +252,27 @@ export default function HomeScreen() {
     setBarcodeModalVisible(true);
   };
 
-  const renderCard = ({ item }: { item: Business }) => {
-    const isFav = favorites.includes(item.id);
-    const scaleAnim = new Animated.Value(1);
-
-    const handlePressIn = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 0.97,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    const handlePressOut = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 3,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    const handleCardPress = () => {
-      // Navigate to business screen with ID parameter
-      router.push({
-        pathname: "/business/[id]" as any,
-        params: { id: item.id, name: item.name }
-      } as any);
-    };
-
-    return (
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={styles.card}
-          onPress={handleCardPress}
-        >
-          <Image source={{ uri: item.image }} style={styles.image} />
-          <View style={styles.imageOverlay} />
-
-          <View style={styles.textContainer}>
-            <View style={styles.titleRow}>
-              <Text style={styles.name}>{item.name}</Text>
-              <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-                <Ionicons
-                  name={isFav ? "star" : "star-outline"}
-                  size={24}
-                  color={isFav ? COLORS.honeyGold : COLORS.dustyRose}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.description} numberOfLines={2}>
-              {item.description}
-            </Text>
-
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={16} color={COLORS.honeyGold} />
-              <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-              <View style={styles.ratingBadge}>
-                <Ionicons name="people" size={12} color={COLORS.mint} />
-                <Text style={styles.ratingBadgeText}>מומלץ</Text>
-              </View>
-            </View>
-
-            <View style={styles.tagsContainer}>
-              {item.tags.slice(0, 3).map((tag, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.addressRow}>
-              <Ionicons name="location" size={14} color={COLORS.sage} />
-              <Text style={styles.address} numberOfLines={1}>
-                {item.address}
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
+  const handleCardPress = (item: Business) => {
+    router.push({
+      pathname: "/business/[id]" as any,
+      params: { id: item.id, name: item.name }
+    } as any);
   };
 
+  // פונקציה מעודכנת שמחזירה רק את הרכיב
+  const renderCard = ({ item }: { item: Business }) => (
+    <BusinessCard
+      item={item}
+      isFavorite={favorites.includes(item.id)}
+      onToggleFavorite={() => toggleFavorite(item.id)}
+      onPress={() => handleCardPress(item)}
+    />
+  );
+
   const filterByCategory = (category: string) => {
-    // חישוב דינמי של קטגוריות לפי מיקום ודירוג
     const userCoords = selectedAddress 
       ? { latitude: selectedAddress.coordinates.lat, longitude: selectedAddress.coordinates.lng }
-      : { latitude: 32.0853, longitude: 34.7818 }; // Default Tel Aviv
+      : { latitude: 32.0853, longitude: 34.7818 };
 
     const businessesWithDistance = filteredBusinesses.map((b) => {
       const distance = getDistance(userCoords, {
@@ -258,12 +285,10 @@ export default function HomeScreen() {
     let data: typeof businessesWithDistance = [];
 
     if (category === "nearby") {
-      // קרוב אליך: מרחק עד 5 ק"מ, ממוין לפי מרחק
       data = businessesWithDistance
         .filter((b) => b.distance <= 5000)
         .sort((a, b) => a.distance - b.distance);
     } else if (category === "recommended") {
-      // מומלצים: דירוג גבוה (4.5+) וקרובים יחסית (עד 10 ק"מ)
       data = businessesWithDistance
         .filter((b) => b.rating >= 4.5 && b.distance <= 10000)
         .sort((a, b) => {
@@ -272,12 +297,10 @@ export default function HomeScreen() {
           return scoreB - scoreA;
         });
     } else if (category === "premium") {
-      // פרימיום: דירוג מעל 4.7 בלי תלות במרחק
       data = businessesWithDistance
         .filter((b) => b.rating >= 4.7)
         .sort((a, b) => b.rating - a.rating);
     } else if (category === "favorites") {
-      // מועדפים: רק העסקים שהמשתמש סימן
       data = businessesWithDistance.filter((b) => favorites.includes(b.id));
     }
 
@@ -870,15 +893,25 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     alignItems: "center",
   },
+  instructionCard: {
+    backgroundColor: COLORS.plum + "DD",
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    marginHorizontal: 20,
+    borderWidth: 2,
+    borderColor: COLORS.honeyGold + "40",
+  },
   instructionText: {
-    color: COLORS.honeyGold,
-    fontSize: 20,
+    color: COLORS.cream,
+    fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 4,
+    marginTop: 12,
+    marginBottom: 8,
   },
   instructionSubtext: {
-    color: COLORS.softWhite,
+    color: COLORS.lavenderBlush,
     fontSize: 14,
     textAlign: "center",
   },
@@ -947,11 +980,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 15,
+    borderRadius: 2,
+  },
+  scanLineGlow: {
+    width: "100%",
+    height: 20,
+    backgroundColor: COLORS.mint,
+    opacity: 0.3,
+    borderRadius: 10,
+    marginTop: -8.5,
   },
   overlayBottom: {
     flex: 1,
     backgroundColor: "rgba(26, 20, 35, 0.85)",
     width: "100%",
+    justifyContent: "flex-start",
+    paddingTop: 30,
+    alignItems: "center",
+  },
+  tipCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: COLORS.deepPurple + "DD",
+    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.amber + "30",
+  },
+  tipText: {
+    flex: 1,
+    color: COLORS.softWhite,
+    fontSize: 13,
+    textAlign: "right",
   },
   closeButton: {
     position: "absolute",
@@ -975,4 +1037,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
   },
-});
+}); 
