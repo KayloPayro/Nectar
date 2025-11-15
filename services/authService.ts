@@ -1,11 +1,11 @@
 // services/authService.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  type: 'customer' | 'business';
+  type: "customer" | "business";
   createdAt: string;
 }
 
@@ -32,9 +32,9 @@ export interface UserData {
   }[];
 }
 
-const STORAGE_KEY = '@nectar_user';
-const USERS_KEY = '@nectar_users'; // Mock database
-const USER_DATA_PREFIX = '@nectar_user_data_'; // User-specific data
+const STORAGE_KEY = "@nectar_user";
+const USERS_KEY = "@nectar_users"; // Mock database
+const USER_DATA_PREFIX = "@nectar_user_data_"; // User-specific data
 
 // Mock users database
 const initMockUsers = async () => {
@@ -42,13 +42,21 @@ const initMockUsers = async () => {
   if (!existing) {
     const mockUsers = [
       {
-        id: '1',
-        email: 'test@nectar.com',
-        password: '123456',
-        name: 'Test User',
-        type: 'customer',
+        id: "1",
+        email: "test@nectar.com",
+        password: "123456",
+        name: "Test User",
+        type: "customer",
         createdAt: new Date().toISOString(),
-      }
+      },
+      {
+        id: "2",
+        email: "business@nectar.com",
+        password: "123456",
+        name: "Business Owner",
+        type: "business",
+        createdAt: new Date().toISOString(),
+      },
     ];
     await AsyncStorage.setItem(USERS_KEY, JSON.stringify(mockUsers));
   }
@@ -58,7 +66,7 @@ const initMockUsers = async () => {
 const initUserData = async (userId: string): Promise<UserData> => {
   const key = `${USER_DATA_PREFIX}${userId}`;
   const existing = await AsyncStorage.getItem(key);
-  
+
   if (!existing) {
     const initialData: UserData = {
       favorites: [],
@@ -69,7 +77,7 @@ const initUserData = async (userId: string): Promise<UserData> => {
     await AsyncStorage.setItem(key, JSON.stringify(initialData));
     return initialData;
   }
-  
+
   return JSON.parse(existing);
 };
 
@@ -85,7 +93,7 @@ export const AuthService = {
       const user = await AsyncStorage.getItem(STORAGE_KEY);
       return user !== null;
     } catch (error) {
-      console.error('Error checking login status:', error);
+      console.error("Error checking login status:", error);
       return false;
     }
   },
@@ -96,7 +104,7 @@ export const AuthService = {
       const userJson = await AsyncStorage.getItem(STORAGE_KEY);
       return userJson ? JSON.parse(userJson) : null;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error("Error getting current user:", error);
       return null;
     }
   },
@@ -106,14 +114,14 @@ export const AuthService = {
     try {
       const key = `${USER_DATA_PREFIX}${userId}`;
       const dataJson = await AsyncStorage.getItem(key);
-      
+
       if (!dataJson) {
         return await initUserData(userId);
       }
-      
+
       return JSON.parse(dataJson);
     } catch (error) {
-      console.error('Error getting user data:', error);
+      console.error("Error getting user data:", error);
       return await initUserData(userId);
     }
   },
@@ -124,12 +132,15 @@ export const AuthService = {
       const key = `${USER_DATA_PREFIX}${userId}`;
       await AsyncStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      console.error('Error saving user data:', error);
+      console.error("Error saving user data:", error);
     }
   },
 
   // Login
-  login: async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+  login: async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       // Get all users
       const usersJson = await AsyncStorage.getItem(USERS_KEY);
@@ -137,24 +148,31 @@ export const AuthService = {
 
       // Find user
       const user = users.find(
-        (u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+        (u: any) =>
+          u.email.toLowerCase() === email.toLowerCase() &&
+          u.password === password
       );
 
       if (!user) {
-        return { success: false, error: 'אימייל או סיסמה שגויים' };
+        return { success: false, error: "אימייל או סיסמה שגויים" };
       }
 
       // Save logged in user (without password)
       const { password: _, ...userWithoutPassword } = user;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userWithoutPassword));
+      await AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(userWithoutPassword)
+      );
 
-      // Initialize user data if needed
-      await initUserData(user.id);
+      // Initialize user data if needed (only for customers)
+      if (user.type === "customer") {
+        await initUserData(user.id);
+      }
 
       return { success: true, user: userWithoutPassword };
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: 'שגיאה בהתחברות' };
+      console.error("Login error:", error);
+      return { success: false, error: "שגיאה בהתחברות" };
     }
   },
 
@@ -163,7 +181,7 @@ export const AuthService = {
     email: string,
     password: string,
     name: string,
-    type: 'customer' | 'business'
+    type: "customer" | "business"
   ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       // Get all users
@@ -171,9 +189,11 @@ export const AuthService = {
       const users = usersJson ? JSON.parse(usersJson) : [];
 
       // Check if user already exists
-      const existingUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      const existingUser = users.find(
+        (u: any) => u.email.toLowerCase() === email.toLowerCase()
+      );
       if (existingUser) {
-        return { success: false, error: 'המשתמש כבר קיים' };
+        return { success: false, error: "המשתמש כבר קיים" };
       }
 
       // Create new user
@@ -192,15 +212,20 @@ export const AuthService = {
 
       // Auto login
       const { password: _, ...userWithoutPassword } = newUser;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userWithoutPassword));
+      await AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(userWithoutPassword)
+      );
 
-      // Initialize user data
-      await initUserData(newUser.id);
+      // Initialize user data (only for customers)
+      if (type === "customer") {
+        await initUserData(newUser.id);
+      }
 
       return { success: true, user: userWithoutPassword };
     } catch (error) {
-      console.error('Signup error:', error);
-      return { success: false, error: 'שגיאה ביצירת חשבון' };
+      console.error("Signup error:", error);
+      return { success: false, error: "שגיאה ביצירת חשבון" };
     }
   },
 
@@ -209,27 +234,31 @@ export const AuthService = {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   },
 
   // Reset password (mock)
-  resetPassword: async (email: string): Promise<{ success: boolean; error?: string }> => {
+  resetPassword: async (
+    email: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const usersJson = await AsyncStorage.getItem(USERS_KEY);
       const users = usersJson ? JSON.parse(usersJson) : [];
 
-      const user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      const user = users.find(
+        (u: any) => u.email.toLowerCase() === email.toLowerCase()
+      );
       if (!user) {
-        return { success: false, error: 'המשתמש לא נמצא' };
+        return { success: false, error: "המשתמש לא נמצא" };
       }
 
       // In real app, send email here
       console.log(`Reset password link sent to ${email}`);
       return { success: true };
     } catch (error) {
-      console.error('Reset password error:', error);
-      return { success: false, error: 'שגיאה בשליחת קישור' };
+      console.error("Reset password error:", error);
+      return { success: false, error: "שגיאה בשליחת קישור" };
     }
   },
 
@@ -245,7 +274,7 @@ export const AuthService = {
   // Remove favorite
   removeFavorite: async (userId: string, businessId: string): Promise<void> => {
     const data = await AuthService.getUserData(userId);
-    data.favorites = data.favorites.filter(id => id !== businessId);
+    data.favorites = data.favorites.filter((id) => id !== businessId);
     await AuthService.saveUserData(userId, data);
   },
 
@@ -253,27 +282,27 @@ export const AuthService = {
   addAddress: async (userId: string, address: Address): Promise<void> => {
     const data = await AuthService.getUserData(userId);
     data.addresses.push(address);
-    
+
     // If it's the first address, set it as selected
     if (data.addresses.length === 1) {
       data.selectedAddressId = address.id;
     }
-    
+
     await AuthService.saveUserData(userId, data);
   },
 
   // Remove address
   removeAddress: async (userId: string, addressId: string): Promise<void> => {
     const data = await AuthService.getUserData(userId);
-    data.addresses = data.addresses.filter(a => a.id !== addressId);
-    
+    data.addresses = data.addresses.filter((a) => a.id !== addressId);
+
     // If removed address was selected, select the first one
     if (data.selectedAddressId === addressId && data.addresses.length > 0) {
       data.selectedAddressId = data.addresses[0].id;
     } else if (data.addresses.length === 0) {
       data.selectedAddressId = null;
     }
-    
+
     await AuthService.saveUserData(userId, data);
   },
 
@@ -314,9 +343,11 @@ export const validateEmail = (email: string): boolean => {
 };
 
 // Password validation
-export const validatePassword = (password: string): { valid: boolean; message?: string } => {
+export const validatePassword = (
+  password: string
+): { valid: boolean; message?: string } => {
   if (password.length < 6) {
-    return { valid: false, message: 'הסיסמה חייבת להכיל לפחות 6 תווים' };
+    return { valid: false, message: "הסיסמה חייבת להכיל לפחות 6 תווים" };
   }
   return { valid: true };
 };

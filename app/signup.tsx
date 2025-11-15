@@ -89,8 +89,13 @@ export default function SignupScreen() {
 
     const result = await AuthService.signup(email, password, name, userType);
 
-    if (result.success) {
-      router.replace("/homepage" as any);
+    if (result.success && result.user) {
+      // Navigate based on user type
+      if (result.user.type === "business") {
+        router.replace("/business-dashboard" as any);
+      } else {
+        router.replace("/homepage" as any);
+      }
     } else {
       setError(result.error || "שגיאה ביצירת חשבון");
     }
