@@ -1,9 +1,11 @@
+import api from "@/services/api";
 import { AuthService, validateEmail } from "@/services/authService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 
 const COLORS = {
   honeyGold: "#F4A259",
@@ -38,9 +41,12 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [serverStatus, setServerStatus] = useState<
+    "checking" | "connected" | "error"
+  >("checking");
 
   useEffect(() => {
-    checkIfLoggedIn();
+    checkServerAndAuth();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -55,7 +61,24 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
-  const checkIfLoggedIn = async () => {
+  const checkServerAndAuth = async () => {
+    // Check server connection
+    try {
+      console.log("🔍 Checking server connection...");
+      const response = await api.get("/health");
+      console.log("✅ Server connected:", response.data);
+      setServerStatus("connected");
+    } catch (error) {
+      console.error("❌ Server connection failed:", error);
+      setServerStatus("error");
+      Alert.alert(
+        "שגיאת חיבור",
+        "לא מצליח להתחבר לשרת.\n\nוודא ש:\n1. השרת רץ (npm run dev)\n2. אתה באותו WiFi\n3. ה-IP נכון (192.168.1.234)",
+        [{ text: "אישור" }]
+      );
+    }
+
+    // Check if already logged in
     await AuthService.init();
     const isLoggedIn = await AuthService.isLoggedIn();
     if (isLoggedIn) {
@@ -134,8 +157,15 @@ export default function LoginScreen() {
       >
         <ActivityIndicator size="large" color={COLORS.honeyGold} />
         <Text style={[styles.title, { color: COLORS.cream, marginTop: 20 }]}>
-          טוען...
+          {serverStatus === "checking" ? "מתחבר לשרת..." : "טוען..."}
         </Text>
+        {serverStatus === "error" && (
+          <Text
+            style={[styles.subtitle, { color: COLORS.error, marginTop: 10 }]}
+          >
+            שגיאה בחיבור לשרת
+          </Text>
+        )}
       </View>
     );
   }
@@ -152,6 +182,22 @@ export default function LoginScreen() {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
+        {/* Server Status Indicator */}
+        <View style={styles.serverStatusContainer}>
+          <View
+            style={[
+              styles.serverStatusDot,
+              {
+                backgroundColor:
+                  serverStatus === "connected" ? COLORS.success : COLORS.error,
+              },
+            ]}
+          />
+          <Text style={styles.serverStatusText}>
+            {serverStatus === "connected" ? "🟢 מחובר לשרת" : "🔴 לא מחובר"}
+          </Text>
+        </View>
+
         {/* Logo/Title */}
         <View style={styles.headerContainer}>
           <Text style={styles.logo}>🍯</Text>
@@ -249,11 +295,15 @@ export default function LoginScreen() {
         <View style={styles.demoContainer}>
           <Text style={styles.demoTitle}>🎯 חשבונות דמו לבדיקה:</Text>
           <Text style={styles.demoSubtitle}>לקוח:</Text>
-          <Text style={styles.demoText}>אימייל: test@nectar.com</Text>
+          <Text style={styles.demoText}>אימייל: customer@nectar.com</Text>
           <Text style={styles.demoText}>סיסמה: 123456</Text>
           <View style={styles.demoSpacer} />
-          <Text style={styles.demoSubtitle}>עסק:</Text>
-          <Text style={styles.demoText}>אימייל: business@nectar.com</Text>
+          <Text style={styles.demoSubtitle}>עסק (פיצה):</Text>
+          <Text style={styles.demoText}>אימייל: pizza@nectar.com</Text>
+          <Text style={styles.demoText}>סיסמה: 123456</Text>
+          <View style={styles.demoSpacer} />
+          <Text style={styles.demoSubtitle}>עסק (קפה):</Text>
+          <Text style={styles.demoText}>אימייל: cafe@nectar.com</Text>
           <Text style={styles.demoText}>סיסמה: 123456</Text>
         </View>
       </Animated.View>
@@ -267,6 +317,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     justifyContent: "center",
     paddingVertical: 60,
+  },
+  serverStatusContainer: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  serverStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  serverStatusText: {
+    fontSize: 12,
+    color: COLORS.dustyRose,
+    fontWeight: "600",
   },
   headerContainer: {
     alignItems: "center",
@@ -368,34 +436,34 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   demoContainer: {
-    marginTop: 40,
-    padding: 20,
+    marginTop: 30,
+    padding: 16,
     backgroundColor: COLORS.plum + "80",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.honeyGold + "30",
   },
   demoTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: COLORS.honeyGold,
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: "center",
   },
   demoSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: COLORS.amber,
     marginTop: 4,
     textAlign: "center",
   },
   demoText: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.softWhite,
     textAlign: "center",
-    marginTop: 4,
+    marginTop: 2,
   },
   demoSpacer: {
-    height: 12,
+    height: 8,
   },
 });

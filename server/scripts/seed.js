@@ -59,7 +59,7 @@ const seedDatabase = async () => {
     // Create businesses
     console.log("🏢 Creating businesses...");
 
-    const pizzaBusiness = await Business.create({
+    const pizzaBusiness = new Business({
       ownerId: businessUser1._id,
       name: "פיצה איטליה",
       description: "פיצה איטלקית אותנטית עם מרכיבים טריים",
@@ -88,8 +88,9 @@ const seedDatabase = async () => {
       rating: 4.5,
       totalReviews: 120,
     });
+    await pizzaBusiness.save();
 
-    const cafeBusiness = await Business.create({
+    const cafeBusiness = new Business({
       ownerId: businessUser2._id,
       name: "קפה נקטר",
       description: "בית קפה מקסים עם אווירה חמימה וקפה משובח",
@@ -118,77 +119,83 @@ const seedDatabase = async () => {
       rating: 4.8,
       totalReviews: 89,
     });
+    await cafeBusiness.save();
 
     console.log("✅ Businesses created");
 
     // Create benefits
     console.log("🎁 Creating benefits...");
 
-    await Benefit.create([
-      {
-        businessId: pizzaBusiness.businessId,
-        title: "2 פיצות במחיר של 1",
-        description: "קנה פיצה משפחתית וקבל שנייה חינם!",
-        discount: "50%",
-        validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
-        terms: "תקף פעם אחת לחודש, לא ניתן לשילוב עם הנחות אחרות",
-        maxUsage: {
-          total: 1000,
-          perCustomer: 1,
-          perPeriod: {
-            times: 1,
-            period: "month",
-          },
+    const benefit1 = new Benefit({
+      businessId: pizzaBusiness.businessId,
+      title: "2 פיצות במחיר של 1",
+      description: "קנה פיצה משפחתית וקבל שנייה חינם!",
+      discount: "50%",
+      validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+      terms: "תקף פעם אחת לחודש, לא ניתן לשילוב עם הנחות אחרות",
+      maxUsage: {
+        total: 1000,
+        perCustomer: 1,
+        perPeriod: {
+          times: 1,
+          period: "month",
         },
-        rewardAmount: 10,
-        isActive: true,
       },
-      {
-        businessId: pizzaBusiness.businessId,
-        title: "20% הנחה על כל התפריט",
-        description: "הנחה מדהימה על כל המנות במסעדה",
-        discount: "20%",
-        validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
-        terms: "תקף בימי ראשון-חמישי בלבד",
-        maxUsage: {
-          perCustomer: 3,
+      rewardAmount: 10,
+      isActive: true,
+    });
+    await benefit1.save();
+
+    const benefit2 = new Benefit({
+      businessId: pizzaBusiness.businessId,
+      title: "20% הנחה על כל התפריט",
+      description: "הנחה מדהימה על כל המנות במסעדה",
+      discount: "20%",
+      validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+      terms: "תקף בימי ראשון-חמישי בלבד",
+      maxUsage: {
+        perCustomer: 3,
+      },
+      rewardAmount: 5,
+      isActive: true,
+    });
+    await benefit2.save();
+
+    const benefit3 = new Benefit({
+      businessId: cafeBusiness.businessId,
+      title: 'קפה + עוגה ב-25 ש"ח',
+      description: "מארז מיוחד: קפה לבחירתך + עוגת בית",
+      discount: '25 ש"ח',
+      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      terms: "תקף בימים א-ה בין 14:00-17:00",
+      maxUsage: {
+        total: 500,
+        perCustomer: 2,
+        perPeriod: {
+          times: 1,
+          period: "week",
         },
-        rewardAmount: 5,
-        isActive: true,
       },
-      {
-        businessId: cafeBusiness.businessId,
-        title: 'קפה + עוגה ב-25 ש"ח',
-        description: "מארז מיוחד: קפה לבחירתך + עוגת בית",
-        discount: '25 ש"ח',
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        terms: "תקף בימים א-ה בין 14:00-17:00",
-        maxUsage: {
-          total: 500,
-          perCustomer: 2,
-          perPeriod: {
-            times: 1,
-            period: "week",
-          },
-        },
-        rewardAmount: 7,
-        isActive: true,
+      rewardAmount: 7,
+      isActive: true,
+    });
+    await benefit3.save();
+
+    const benefit4 = new Benefit({
+      businessId: cafeBusiness.businessId,
+      title: 'ארוחת בוקר זוגית ב-99 ש"ח',
+      description: "ארוחת בוקר מושלמת לשניים",
+      discount: '99 ש"ח',
+      validUntil: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days
+      terms: "תקף בסופי שבוע בלבד, עד 12:00",
+      maxUsage: {
+        total: 200,
+        perCustomer: 1,
       },
-      {
-        businessId: cafeBusiness.businessId,
-        title: 'ארוחת בוקר זוגית ב-99 ש"ח',
-        description: "ארוחת בוקר מושלמת לשניים",
-        discount: '99 ש"ח',
-        validUntil: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days
-        terms: "תקף בסופי שבוע בלבד, עד 12:00",
-        maxUsage: {
-          total: 200,
-          perCustomer: 1,
-        },
-        rewardAmount: 15,
-        isActive: true,
-      },
-    ]);
+      rewardAmount: 15,
+      isActive: true,
+    });
+    await benefit4.save();
 
     console.log("✅ Benefits created");
 

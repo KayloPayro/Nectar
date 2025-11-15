@@ -2,10 +2,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// שנה את ה-URL בהתאם לסביבה
+// ✅ ה-IP שלך: 192.168.1.234
 const API_URL = __DEV__
-  ? "http://localhost:3000/api" // Development
-  : "https://your-production-url.com/api"; // Production
+  ? "https://blythe-null-loura.ngrok-free.dev/api" // ✅ הוסף /api
+  : "https://your-production-url.com/api";
+
+console.log("🌐 API URL:", API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,7 +17,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor להוספת JWT token לכל בקשה
+// Interceptor - Add JWT token to every request
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("@nectar_token");
@@ -29,15 +31,18 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor לטיפול בשגיאות
+// Interceptor - Handle errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    console.error("❌ API Error:", error.response?.data || error.message);
+
     if (error.response?.status === 401) {
       // Token expired or invalid - logout
       await AsyncStorage.removeItem("@nectar_token");
-      // Navigate to login screen
+      await AsyncStorage.removeItem("@nectar_user");
     }
+
     return Promise.reject(error);
   }
 );

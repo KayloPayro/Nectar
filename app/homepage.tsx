@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import Fuse from "fuse.js";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,10 +17,10 @@ import { AddressSelector } from "../components/home/AddressSelector";
 import { BarcodeScanner } from "../components/home/BarcodeScanner";
 import { CategorySection } from "../components/home/CategorySection";
 import { SearchBar } from "../components/shared/SearchBar";
-import businessData from "../data/businesses.json";
 import { useBusinessFilters } from "../hooks/useBusinessFilters";
 import { Address, AuthService, User, UserData } from "../services/authService";
 import { Business } from "../types/business";
+import { BusinessApiService } from "@/services/businessApiService";
 
 const COLORS = {
   honeyGold: "#F4A259",
@@ -34,7 +35,6 @@ export default function HomeScreen() {
   const router = useRouter();
 
   // State
-  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
@@ -44,16 +44,38 @@ export default function HomeScreen() {
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [permission, requestPermission] = useCameraPermissions();
 
   // Initialize
   useEffect(() => {
-    loadUserData();
-    setBusinesses(businessData as any);
-    setFilteredBusinesses(businessData as any);
+    loadBusinesses();
   }, []);
+  
+  const loadBusinesses = async () => {
+    setLoading(true);
 
+    const userAddress = await getSelectedAddress();
+    const params = userAddress
+      ? {
+          lat: userAddress.coordinates.lat,
+          lng: userAddress.coordinates.lng,
+          radius: 10000,
+        }
+      : undefined;
+
+    const result = await BusinessApiService.getAllBusinesses(params);
+
+    if (result.success) {
+      setBusinesses(result.businesses);
+    } else {
+      Alert.alert("שגיאה", result.error);
+    }
+
+    setLoading(false);
+  };
   const loadUserData = async () => {
     const user = await AuthService.getCurrentUser();
     if (user) {
@@ -73,6 +95,32 @@ export default function HomeScreen() {
       }
     }
   };
+
+  // Helper: return the currently selected address for the current user (or null)
+  async function getSelectedAddress(): Promise<Address | null> {
+    try {
+      // Prefer in-memory selected address if already loaded
+      if (selectedAddress) return selectedAddress;
+
+      const user = await AuthService.getCurrentUser();
+      if (!user) return null;
+
+      const data = await AuthService.getUserData(user.id);
+      if (!data) return null;
+
+      if (data.selectedAddressId) {
+        const addr = data.addresses.find((a) => a.id === data.selectedAddressId);
+        if (addr) return addr;
+      }
+
+      // Fallback to first saved address if any
+      if (data.addresses && data.addresses.length > 0) return data.addresses[0];
+
+      return null;
+    } catch (err) {
+      return null;
+    }
+  }
 
   // Search logic
   useEffect(() => {

@@ -14,12 +14,13 @@ import {
   View,
 } from "react-native";
 import { AuthService, User } from "../services/authService";
+import { BenefitApiService } from "../services/benefitApiService";
+import { BusinessApiService } from "../services/businessApiService";
 import {
   BusinessProfile,
   BusinessService,
   Offer,
 } from "../services/businessService";
-
 const COLORS = {
   honeyGold: "#F4A259",
   amber: "#F2CC8F",
@@ -47,35 +48,18 @@ export default function BusinessDashboard() {
   }, []);
 
   const loadData = async () => {
-    try {
-      const user = await AuthService.getCurrentUser();
-      if (!user) {
-        router.replace("/" as any);
-        return;
-      }
+    // Get business
+    const businessResult = await BusinessApiService.getMyBusiness();
+    if (businessResult.success) {
+      setBusinessProfile(businessResult.business);
 
-      if (user.type !== "business") {
-        router.replace("/homepage" as any);
-        return;
+      // Get benefits
+      const benefitsResult = await BenefitApiService.getMyBenefits();
+      if (benefitsResult.success) {
+        setOffers(benefitsResult.benefits);
       }
-
-      setCurrentUser(user);
-      const profile = await BusinessService.getBusinessByOwnerId(user.id);
-      setBusinessProfile(profile);
-
-      if (profile) {
-        const businessOffers = await BusinessService.getBusinessOffers(
-          profile.id
-        );
-        setOffers(businessOffers);
-      }
-    } catch (error) {
-      console.error("Error loading dashboard:", error);
-    } finally {
-      setLoading(false);
     }
   };
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
