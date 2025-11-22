@@ -16,10 +16,30 @@ export const useBusinessFilters = (
   const filterByCategory = useMemo(
     () => (category: string) => {
       const businessesWithDistance = businesses.map((b) => {
+        // ✅ טיפול בשני פורמטים של address
+        let lat: number | undefined;
+        let lng: number | undefined;
+
+        if (typeof b.address === "string") {
+          // אם address הוא string, נסה לקחת מ-coordinates ישירות
+          lat = b.coordinates?.lat;
+          lng = b.coordinates?.lng;
+        } else if (b.address && typeof b.address === "object") {
+          // אם address הוא object, קח מתוכו
+          lat = b.address.coordinates?.lat;
+          lng = b.address.coordinates?.lng;
+        }
+
+        // אם אין קואורדינטות, מרחק גדול
+        if (!lat || !lng) {
+          return { ...b, distance: 999999 };
+        }
+
         const distance = getDistance(userCoords, {
-          latitude: b.coordinates.lat,
-          longitude: b.coordinates.lng,
+          latitude: lat,
+          longitude: lng,
         });
+
         return { ...b, distance };
       });
 
@@ -42,7 +62,9 @@ export const useBusinessFilters = (
           .filter((b) => b.rating >= 4.7)
           .sort((a, b) => b.rating - a.rating);
       } else if (category === "favorites") {
-        data = businessesWithDistance.filter((b) => favorites.includes(b.id));
+        data = businessesWithDistance.filter((b) =>
+          favorites.includes(b.businessId || b.id || "")
+        );
       }
 
       return data;

@@ -1,24 +1,24 @@
+import { BenefitApiService } from "@/services/benefitApiService";
+import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getDistance } from "geolib";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Clipboard,
   Dimensions,
   FlatList,
-  Image,
   Modal,
   PanResponder,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import businessData from "../../data/businesses.json";
 import { AuthService, User } from "../../services/authService";
 
 const { width, height } = Dimensions.get("window");
@@ -43,28 +43,38 @@ const COLORS = {
   error: "#E07A7A",
 };
 
-interface Offer {
-  id: string;
+interface Benefit {
+  benefitId: string;
+  businessId: string;
   title: string;
   description: string;
-  reward: string;
-  requiredReferrals: number;
-  image: string;
+  discount: string;
+  validUntil: string;
   terms: string;
+  isActive: boolean;
+  maxUsage?: {
+    total?: number;
+    perCustomer?: number;
+  };
+  usageCount: number;
+  rewardAmount: number;
 }
 
 interface Business {
-  id: string;
+  businessId: string;
   name: string;
   description: string;
-  address: string;
+  address: {
+    street: string;
+    city: string;
+    coordinates: { lat: number; lng: number };
+  };
   image: string;
-  logo: string;
   rating: number;
-  reviewCount: number;
-  coordinates: { lat: number; lng: number };
+  totalReviews: number;
+  phone: string;
+  email: string;
   tags: string[];
-  offers: Offer[];
 }
 
 export default function BusinessScreen() {
@@ -73,15 +83,17 @@ export default function BusinessScreen() {
   const businessId = params.id as string;
 
   const [business, setBusiness] = useState<Business | null>(null);
+  const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [couponName, setCouponName] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [displayCode, setDisplayCode] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -103,7 +115,6 @@ export default function BusinessScreen() {
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 150) {
-          // Close sheet
           Animated.timing(sheetY, {
             toValue: height,
             duration: 300,
@@ -113,7 +124,6 @@ export default function BusinessScreen() {
             sheetY.setValue(0);
           });
         } else {
-          // Snap back
           Animated.spring(sheetY, {
             toValue: 0,
             useNativeDriver: true,
@@ -125,40 +135,68 @@ export default function BusinessScreen() {
     })
   ).current;
 
-  // Load business and user from JSON
+  // Load business and benefits
   useEffect(() => {
-    loadUserAndBusiness();
-  }, [businessId]);
-
-  const loadUserAndBusiness = async () => {
-    // Load user
-    const user = await AuthService.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-      setCouponName(user.name.toUpperCase().replace(/\s/g, ""));
-
-      // Check if business is favorite
-      const userData = await AuthService.getUserData(user.id);
-      setIsFavorite(userData.favorites.includes(businessId));
+    if (!businessId) {
+      console.error("❌ No businessId provided");
+      alert("שגיאה: לא נמצא מזהה עסק");
+      router.back();
+      return;
     }
 
-    // Load business
-    console.log("Looking for business ID:", businessId);
-    console.log(
-      "Available businesses:",
-      businessData.map((b) => ({ id: b.id, name: b.name }))
-    );
+    console.log("📍 Loading business with ID:", businessId);
+    loadBusinessAndBenefits();
+  }, [businessId]);
 
-    const foundBusiness = businessData.find((b) => b.id === businessId);
+  const loadBusinessAndBenefits = async () => {
+    try {
+      setLoading(true);
 
-    if (foundBusiness) {
-      console.log("Found business:", foundBusiness.name);
-      console.log("Business offers:", foundBusiness.offers);
-      setBusiness(foundBusiness as any);
-    } else {
-      console.log("Business not found!");
-      alert("העסק לא נמצא");
+      // טען משתמש
+      const user = await AuthService.getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+
+        // בדוק אם זה מועדף
+        const userData = await AuthService.getUserData(user.id);
+        setIsFavorite(userData.favorites.includes(businessId));
+      }
+
+      // ✅ טען עסק מהשרת לפי businessId
+      console.log("📤 Fetching business:", businessId);
+      const businessResult = await BusinessApiService.getBusinessById(
+        businessId
+      );
+
+      if (!businessResult.success || !businessResult.business) {
+        console.error("❌ Business not found:", businessResult.error);
+        alert("העסק לא נמצא");
+        router.back();
+        return;
+      }
+
+      console.log("✅ Business loaded:", businessResult.business.name);
+      setBusiness(businessResult.business);
+
+      // ✅ טען הטבות לעסק
+      console.log("📤 Fetching benefits for:", businessId);
+      const benefitsResult = await BenefitApiService.getBusinessBenefits(
+        businessId
+      );
+
+      if (benefitsResult.success) {
+        console.log("✅ Benefits loaded:", benefitsResult.benefits.length);
+        setBenefits(benefitsResult.benefits);
+      } else {
+        console.warn("⚠️ No benefits found:", benefitsResult.error);
+        setBenefits([]);
+      }
+    } catch (error) {
+      console.error("❌ Error loading business:", error);
+      alert("שגיאה בטעינת העסק");
       router.back();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,60 +249,70 @@ export default function BusinessScreen() {
     }
   }, [successModalVisible]);
 
-  const handleCreateCode = async () => {
-    if (
-      !acceptedTerms ||
-      !couponName.trim() ||
-      !currentUser ||
-      !business ||
-      !selectedOffer
-    )
+  const handleRedeemBenefit = async () => {
+    if (!acceptedTerms || !currentUser || !business || !selectedBenefit) {
       return;
+    }
 
-    // Generate code
-    const code = `NECTAR-${couponName.toUpperCase()}-${Math.random()
-      .toString(36)
-      .substr(2, 6)
-      .toUpperCase()}`;
-    setGeneratedCode(code);
+    try {
+      console.log("📤 Redeeming benefit:", selectedBenefit.benefitId);
 
-    // Save to user data
-    await AuthService.saveGeneratedCode(
-      currentUser.id,
-      business.id,
-      business.name,
-      selectedOffer.id,
-      selectedOffer.title,
-      code
-    );
+      const result = await BenefitApiService.redeemBenefit(
+        selectedBenefit.benefitId
+      );
 
-    setBottomSheetVisible(false);
-    setSuccessModalVisible(true);
+      if (result.success) {
+        console.log("✅ Benefit redeemed successfully!");
+        setGeneratedCode(result.data.qrData);
+        setDisplayCode(result.data.displayCode);
+        setBottomSheetVisible(false);
+        setSuccessModalVisible(true);
+      } else {
+        alert(result.error || "שגיאה ביצירת קוד");
+      }
+    } catch (error) {
+      console.error("❌ Redeem error:", error);
+      alert("שגיאה ביצירת קוד");
+    }
   };
 
   const toggleFavorite = async () => {
     if (!currentUser || !business) return;
 
     if (isFavorite) {
-      await AuthService.removeFavorite(currentUser.id, business.id);
+      await AuthService.removeFavorite(currentUser.id, business.businessId);
       setIsFavorite(false);
     } else {
-      await AuthService.addFavorite(currentUser.id, business.id);
+      await AuthService.addFavorite(currentUser.id, business.businessId);
       setIsFavorite(true);
     }
   };
 
   const handleCopyCode = () => {
-    Clipboard.setString(generatedCode);
+    Clipboard.setString(displayCode);
     alert("הקוד הועתק ללוח! 📋");
   };
 
-  const handleOfferPress = (offer: Offer) => {
-    setSelectedOffer(offer);
+  const handleBenefitPress = (benefit: Benefit) => {
+    setSelectedBenefit(benefit);
     setAcceptedTerms(false);
     setShowTerms(false);
     setBottomSheetVisible(true);
   };
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={COLORS.honeyGold} />
+        <Text style={[styles.businessName, { marginTop: 20 }]}>טוען...</Text>
+      </View>
+    );
+  }
 
   if (!business) {
     return (
@@ -274,14 +322,19 @@ export default function BusinessScreen() {
           { justifyContent: "center", alignItems: "center" },
         ]}
       >
-        <Text style={styles.businessName}>טוען...</Text>
+        <Text style={styles.businessName}>העסק לא נמצא</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+        >
+          <Text >חזור</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   const distance = getDistance(
     { latitude: 32.0853, longitude: 34.7818 },
-    business.coordinates
+    business.address.coordinates
   );
 
   // Header animations
@@ -309,21 +362,18 @@ export default function BusinessScreen() {
     extrapolate: "clamp",
   });
 
-  const renderOfferCard = ({ item }: { item: Offer }) => (
+  const renderBenefitCard = ({ item }: { item: Benefit }) => (
     <TouchableOpacity
-      style={styles.offerCard}
-      onPress={() => handleOfferPress(item)}
-      activeOpacity={0.9}
+      style={[styles.offerCard, !item.isActive && styles.offerCardInactive]}
+      onPress={() => item.isActive && handleBenefitPress(item)}
+      activeOpacity={item.isActive ? 0.9 : 1}
     >
-      <Image source={{ uri: item.image }} style={styles.offerImage} />
       <View style={styles.offerOverlay} />
 
       <View style={styles.offerContent}>
         <View style={styles.offerBadge}>
           <Ionicons name="gift" size={16} color={COLORS.deepPurple} />
-          <Text style={styles.offerBadgeText}>
-            {item.requiredReferrals} חברים
-          </Text>
+          <Text style={styles.offerBadgeText}>{item.discount}</Text>
         </View>
 
         <Text style={styles.offerTitle}>{item.title}</Text>
@@ -331,8 +381,14 @@ export default function BusinessScreen() {
 
         <View style={styles.offerReward}>
           <Ionicons name="trophy" size={18} color={COLORS.honeyGold} />
-          <Text style={styles.offerRewardText}>{item.reward}</Text>
+          <Text style={styles.offerRewardText}>{item.rewardAmount} נקודות</Text>
         </View>
+
+        {!item.isActive && (
+          <View style={styles.inactiveOverlay}>
+            <Text style={styles.inactiveText}>לא פעיל</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -397,16 +453,13 @@ export default function BusinessScreen() {
         {/* Business Info */}
         <View style={styles.infoSection}>
           <View style={styles.titleRow}>
-            <View style={styles.logoContainer}>
-              <Image source={{ uri: business.logo }} style={styles.logo} />
-            </View>
             <View style={styles.titleContent}>
               <Text style={styles.businessName}>{business.name}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={18} color={COLORS.honeyGold} />
-                <Text style={styles.rating}>{business.rating}</Text>
+                <Text style={styles.rating}>{business.rating.toFixed(1)}</Text>
                 <Text style={styles.reviewCount}>
-                  ({business.reviewCount} ביקורות)
+                  ({business.totalReviews} ביקורות)
                 </Text>
               </View>
             </View>
@@ -417,7 +470,9 @@ export default function BusinessScreen() {
           <View style={styles.detailsRow}>
             <View style={styles.detailItem}>
               <Ionicons name="location" size={20} color={COLORS.sage} />
-              <Text style={styles.detailText}>{business.address}</Text>
+              <Text style={styles.detailText}>
+                {business.address.street}, {business.address.city}
+              </Text>
             </View>
 
             <View style={styles.detailItem}>
@@ -429,154 +484,146 @@ export default function BusinessScreen() {
           </View>
         </View>
 
-        {/* Offers Section */}
+        {/* Benefits Section */}
         <View style={styles.offersSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🎁 חבילות שיווק</Text>
+            <Text style={styles.sectionTitle}>🎁 הטבות זמינות</Text>
             <Text style={styles.sectionSubtitle}>
-              בחר הצעה ושתף עם חברים כדי לזכות בתגמולים
+              בחר הטבה וצור קוד כדי לממש אותה בעסק
             </Text>
           </View>
 
-          {business.offers && business.offers.length > 0 ? (
+          {benefits && benefits.length > 0 ? (
             <FlatList
-              data={business.offers}
-              renderItem={renderOfferCard}
-              keyExtractor={(item) => item.id}
+              data={benefits}
+              renderItem={renderBenefitCard}
+              keyExtractor={(item) => item.benefitId}
               scrollEnabled={false}
               contentContainerStyle={styles.offersList}
             />
           ) : (
             <View style={styles.noOffersContainer}>
-              <Text style={styles.noOffersText}>אין הצעות זמינות כרגע</Text>
+              <Ionicons
+                name="gift-outline"
+                size={60}
+                color={COLORS.dustyRose}
+              />
+              <Text style={styles.noOffersText}>אין הטבות זמינות כרגע</Text>
             </View>
           )}
         </View>
       </Animated.ScrollView>
 
-      {/* Bottom Sheet with drag */}
-      {bottomSheetVisible && selectedOffer && (
-        <Animated.View
-          style={[styles.bottomSheetOverlay, { opacity: fadeAnim }]}
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={() => setBottomSheetVisible(false)}
-          />
-        </Animated.View>
-      )}
-
-      {bottomSheetVisible && selectedOffer && (
-        <Animated.View
-          style={[
-            styles.bottomSheet,
-            {
-              transform: [{ translateY: Animated.add(slideAnim, sheetY) }],
-            },
-          ]}
-        >
-          <View
-            style={styles.sheetHandleContainer}
-            {...panResponder.panHandlers}
+      {/* Bottom Sheet */}
+      {bottomSheetVisible && selectedBenefit && (
+        <>
+          <Animated.View
+            style={[styles.bottomSheetOverlay, { opacity: fadeAnim }]}
           >
-            <View style={styles.sheetHandle} />
-          </View>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => setBottomSheetVisible(false)}
+            />
+          </Animated.View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.sheetContent}>
-              <Text style={styles.sheetTitle}>{selectedOffer.title}</Text>
-              <Text style={styles.sheetDescription}>
-                {selectedOffer.description}
-              </Text>
-
-              <View style={styles.rewardBox}>
-                <Ionicons name="gift" size={32} color={COLORS.honeyGold} />
-                <View style={styles.rewardContent}>
-                  <Text style={styles.rewardLabel}>התגמול שלך:</Text>
-                  <Text style={styles.rewardValue}>{selectedOffer.reward}</Text>
-                </View>
-              </View>
-
-              <View style={styles.requirementBox}>
-                <Ionicons name="people" size={24} color={COLORS.mint} />
-                <Text style={styles.requirementText}>
-                  הזמן {selectedOffer.requiredReferrals} חברים וקבל את התגמול
-                </Text>
-              </View>
-
-              {/* Terms & Conditions */}
-              <TouchableOpacity
-                style={styles.termsToggle}
-                onPress={() => setShowTerms(!showTerms)}
-              >
-                <Text style={styles.termsToggleText}>תנאים והגבלות</Text>
-                <Ionicons
-                  name={showTerms ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={COLORS.dustyRose}
-                />
-              </TouchableOpacity>
-
-              {showTerms && (
-                <View style={styles.termsContent}>
-                  <Text style={styles.termsText}>{selectedOffer.terms}</Text>
-                </View>
-              )}
-
-              {/* Code Name Input */}
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>שם הקוד שלך (אופציונלי):</Text>
-                <TextInput
-                  style={styles.input}
-                  value={couponName}
-                  onChangeText={setCouponName}
-                  placeholder="למשל: YOSSI2024"
-                  placeholderTextColor={COLORS.dustyRose}
-                  maxLength={20}
-                />
-              </View>
-
-              {/* Accept Terms Checkbox */}
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setAcceptedTerms(!acceptedTerms)}
-              >
-                <View
-                  style={[
-                    styles.checkboxBox,
-                    acceptedTerms && styles.checkboxBoxActive,
-                  ]}
-                >
-                  {acceptedTerms && (
-                    <Ionicons
-                      name="checkmark"
-                      size={18}
-                      color={COLORS.deepPurple}
-                    />
-                  )}
-                </View>
-                <Text style={styles.checkboxText}>
-                  קראתי והבנתי את התנאים וההגבלות
-                </Text>
-              </TouchableOpacity>
-
-              {/* Create Code Button */}
-              <TouchableOpacity
-                style={[
-                  styles.createButton,
-                  (!acceptedTerms || !couponName.trim()) &&
-                    styles.createButtonDisabled,
-                ]}
-                onPress={handleCreateCode}
-                disabled={!acceptedTerms || !couponName.trim()}
-              >
-                <Ionicons name="create" size={22} color={COLORS.deepPurple} />
-                <Text style={styles.createButtonText}>צור קוד שיתוף</Text>
-              </TouchableOpacity>
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                transform: [{ translateY: Animated.add(slideAnim, sheetY) }],
+              },
+            ]}
+          >
+            <View
+              style={styles.sheetHandleContainer}
+              {...panResponder.panHandlers}
+            >
+              <View style={styles.sheetHandle} />
             </View>
-          </ScrollView>
-        </Animated.View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.sheetContent}>
+                <Text style={styles.sheetTitle}>{selectedBenefit.title}</Text>
+                <Text style={styles.sheetDescription}>
+                  {selectedBenefit.description}
+                </Text>
+
+                <View style={styles.rewardBox}>
+                  <Ionicons name="gift" size={32} color={COLORS.honeyGold} />
+                  <View style={styles.rewardContent}>
+                    <Text style={styles.rewardLabel}>ההטבה:</Text>
+                    <Text style={styles.rewardValue}>
+                      {selectedBenefit.discount}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Terms & Conditions */}
+                <TouchableOpacity
+                  style={styles.termsToggle}
+                  onPress={() => setShowTerms(!showTerms)}
+                >
+                  <Text style={styles.termsToggleText}>תנאים והגבלות</Text>
+                  <Ionicons
+                    name={showTerms ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color={COLORS.dustyRose}
+                  />
+                </TouchableOpacity>
+
+                {showTerms && (
+                  <View style={styles.termsContent}>
+                    <Text style={styles.termsText}>
+                      {selectedBenefit.terms}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Accept Terms Checkbox */}
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setAcceptedTerms(!acceptedTerms)}
+                >
+                  <View
+                    style={[
+                      styles.checkboxBox,
+                      acceptedTerms && styles.checkboxBoxActive,
+                    ]}
+                  >
+                    {acceptedTerms && (
+                      <Ionicons
+                        name="checkmark"
+                        size={18}
+                        color={COLORS.deepPurple}
+                      />
+                    )}
+                  </View>
+                  <Text style={styles.checkboxText}>
+                    קראתי והבנתי את התנאים וההגבלות
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Redeem Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.createButton,
+                    !acceptedTerms && styles.createButtonDisabled,
+                  ]}
+                  onPress={handleRedeemBenefit}
+                  disabled={!acceptedTerms}
+                >
+                  <Ionicons
+                    name="qr-code"
+                    size={22}
+                    color={COLORS.deepPurple}
+                  />
+                  <Text style={styles.createButtonText}>צור קוד</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </>
       )}
 
       {/* Success Modal */}
@@ -604,12 +651,12 @@ export default function BusinessScreen() {
 
             <Text style={styles.successTitle}>הקוד נוצר בהצלחה!</Text>
             <Text style={styles.successSubtitle}>
-              שתף את הקוד עם חברים והתחל לצבור תגמולים
+              הצג את הקוד לצוות בעסק כדי לממש את ההטבה
             </Text>
 
             <View style={styles.codeBox}>
               <Text style={styles.codeLabel}>הקוד שלך:</Text>
-              <Text style={styles.codeText}>{generatedCode}</Text>
+              <Text style={styles.codeText}>{displayCode}</Text>
             </View>
 
             <TouchableOpacity
@@ -618,15 +665,6 @@ export default function BusinessScreen() {
             >
               <Ionicons name="copy" size={20} color={COLORS.cream} />
               <Text style={styles.copyButtonText}>העתק קוד</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.shareButton}>
-              <Ionicons
-                name="share-social"
-                size={20}
-                color={COLORS.deepPurple}
-              />
-              <Text style={styles.shareButtonText}>שתף ברשתות חברתיות</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1126,5 +1164,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.cream,
     textAlign: "center",
+  },
+  inactiveOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  inactiveText: {
+    color: COLORS.error,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  offerCardInactive: {
+    opacity: 0.6,
   },
 });

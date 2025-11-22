@@ -39,8 +39,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const renderCard = ({ item }: { item: Business }) => (
     <BusinessCard
       item={item}
-      isFavorite={favorites.includes(item.id)}
-      onToggleFavorite={() => onToggleFavorite(item.id)}
+      isFavorite={favorites.includes(item.businessId || item.id || '')}
+      onToggleFavorite={() => onToggleFavorite(item.businessId || item.id || '')}
       onPress={() => onCardPress(item)}
     />
   );
@@ -58,7 +58,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
       </View>
       <FlatList
         data={data}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.businessId || item.id || item._id || Math.random().toString()} // ✅ תיקון key
         renderItem={renderCard}
         horizontal
         inverted

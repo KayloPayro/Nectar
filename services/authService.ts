@@ -12,13 +12,47 @@ export interface User {
   type: "customer" | "business";
 }
 
+// ✅ הוסף את האינטרפייסים האלה
+export interface Address {
+  id: string;
+  label: string;
+  street: string;
+  city: string;
+  coordinates: { lat: number; lng: number };
+}
+
+export interface UserData {
+  favorites: string[];
+  addresses: Address[];
+  selectedAddressId: string | null;
+  generatedCodes: {
+    id: string;
+    businessId: string;
+    businessName: string;
+    offerId: string;
+    offerTitle: string;
+    code: string;
+    createdAt: string;
+  }[];
+}
+
 export const AuthService = {
-  // Initialize (no longer needed with real backend)
   init: async () => {
     console.log("✅ AuthService initialized with API backend");
   },
 
-  // Register/Signup
+  saveGeneratedCode: async (
+    userId: string,
+    businessId: string,
+    businessName: string,
+    offerId: string,
+    offerTitle: string,
+    code: string
+  ): Promise<void> => {
+    // TODO: בעתיד נחבר ל-API
+    console.log("💾 Saving code:", { businessId, offerId, code });
+  },
+
   signup: async (
     email: string,
     password: string,
@@ -54,17 +88,6 @@ export const AuthService = {
     }
   },
 
-  // Register (alias for signup for backwards compatibility)
-  register: async (
-    email: string,
-    password: string,
-    name: string,
-    type: "customer" | "business"
-  ): Promise<{ success: boolean; user?: User; error?: string }> => {
-    return AuthService.signup(email, password, name, type);
-  },
-
-  // Login
   login: async (
     email: string,
     password: string
@@ -93,7 +116,6 @@ export const AuthService = {
     }
   },
 
-  // Get current user
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const userJson = await AsyncStorage.getItem(USER_KEY);
@@ -104,19 +126,16 @@ export const AuthService = {
     }
   },
 
-  // Check if logged in
   isLoggedIn: async (): Promise<boolean> => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
     return !!token;
   },
 
-  // Logout
   logout: async (): Promise<void> => {
     await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
     console.log("✅ Logged out");
   },
 
-  // Reset password
   resetPassword: async (
     email: string
   ): Promise<{ success: boolean; error?: string }> => {
@@ -130,15 +149,39 @@ export const AuthService = {
       };
     }
   },
+
+  // ✅ הוסף את הפונקציות האלה - זמנית מחזירות נתונים ריקים
+  // בעתיד נחבר אותן ל-API
+  getUserData: async (userId: string): Promise<UserData> => {
+    return {
+      favorites: [],
+      addresses: [],
+      selectedAddressId: null,
+      generatedCodes: [],
+    };
+  },
+
+  addFavorite: async (userId: string, businessId: string): Promise<void> => {
+    console.log("Add favorite:", businessId);
+    // TODO: חבר ל-API
+  },
+
+  removeFavorite: async (userId: string, businessId: string): Promise<void> => {
+    console.log("Remove favorite:", businessId);
+    // TODO: חבר ל-API
+  },
+
+  selectAddress: async (userId: string, addressId: string): Promise<void> => {
+    console.log("Select address:", addressId);
+    // TODO: חבר ל-API
+  },
 };
 
-// Email validation
 export const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-// Password validation
 export const validatePassword = (
   password: string
 ): { valid: boolean; message?: string } => {

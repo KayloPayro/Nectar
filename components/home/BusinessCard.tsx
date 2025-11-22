@@ -64,6 +64,17 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
     }).start();
   };
 
+  // ✅ המרת address לטקסט
+  const getAddressText = () => {
+    if (typeof item.address === "string") {
+      return item.address;
+    }
+    if (item.address && typeof item.address === "object") {
+      return `${item.address.street}, ${item.address.city}`;
+    }
+    return "כתובת לא זמינה";
+  };
+
   return (
     <Animated.View
       style={{ transform: [{ scale: scaleAnim }], opacity: fadeAnim }}
@@ -114,7 +125,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
           <View style={styles.addressRow}>
             <Ionicons name="location" size={14} color={COLORS.sage} />
             <Text style={styles.address} numberOfLines={1}>
-              {item.address}
+              {getAddressText()}
             </Text>
           </View>
         </View>
