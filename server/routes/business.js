@@ -4,6 +4,7 @@ const Business = require("../models/Business");
 const Benefit = require("../models/Benefit");
 const { authenticate, isBusiness } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
@@ -27,10 +28,14 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Convert ownerId to ObjectId
+      const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+
       // Check if business already exists for this owner
       const existingBusiness = await Business.findOne({
-        ownerId: req.user._id,
+        ownerId: ownerObjectId,
       });
+
       if (existingBusiness) {
         return res.status(400).json({ error: "כבר קיים עסק עבור משתמש זה" });
       }
@@ -48,7 +53,7 @@ router.post(
       } = req.body;
 
       const business = await Business.create({
-        ownerId: req.user._id,
+        ownerId: ownerObjectId,
         name,
         description,
         category,
@@ -74,8 +79,11 @@ router.post(
 
 // GET /api/business/my-business - Get business by owner
 router.get("/my-business", authenticate, isBusiness, async (req, res) => {
+  console.log("DEBUG: user id in route:", req.user._id);
   try {
-    const business = await Business.findOne({ ownerId: req.user._id });
+    const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+
+    const business = await Business.findOne({ ownerId: ownerObjectId });
 
     if (!business) {
       return res.status(404).json({ error: "עסק לא נמצא" });
@@ -92,7 +100,7 @@ router.get("/my-business", authenticate, isBusiness, async (req, res) => {
 router.get("/:businessId", async (req, res) => {
   try {
     const business = await Business.findOne({
-      businessId: req.params.businessId,
+      ownerId: req.params.businessId,
       isActive: true,
     });
 
@@ -115,19 +123,17 @@ router.get("/", async (req, res) => {
       search,
       lat,
       lng,
-      radius = 10000, // meters
+      radius = 10000,
       limit = 50,
       skip = 0,
     } = req.query;
 
     let query = { isActive: true };
 
-    // Filter by category
     if (category) {
       query.category = category;
     }
 
-    // Search by name or description
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -141,7 +147,6 @@ router.get("/", async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
-    // Filter by location if provided
     if (lat && lng) {
       const userLat = parseFloat(lat);
       const userLng = parseFloat(lng);
@@ -180,9 +185,11 @@ router.get("/", async (req, res) => {
 // PUT /api/business/:businessId - Update business
 router.put("/:businessId", authenticate, isBusiness, async (req, res) => {
   try {
+    const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+
     const business = await Business.findOne({
       businessId: req.params.businessId,
-      ownerId: req.user._id,
+      ownerId: ownerObjectId,
     });
 
     if (!business) {
@@ -221,16 +228,17 @@ router.put("/:businessId", authenticate, isBusiness, async (req, res) => {
 // GET /api/business/:businessId/stats - Get business statistics
 router.get("/:businessId/stats", authenticate, isBusiness, async (req, res) => {
   try {
+    const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+
     const business = await Business.findOne({
       businessId: req.params.businessId,
-      ownerId: req.user._id,
+      ownerId: ownerObjectId,
     });
 
     if (!business) {
       return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
-    // Get benefits
     const benefits = await Benefit.find({ businessId: business.businessId });
 
     const stats = {
@@ -248,17 +256,16 @@ router.get("/:businessId/stats", authenticate, isBusiness, async (req, res) => {
   }
 });
 
-// Helper function to calculate distance between two coordinates
+// Helper function to calculate distance
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 

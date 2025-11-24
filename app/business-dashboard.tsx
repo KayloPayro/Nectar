@@ -54,7 +54,7 @@ export default function BusinessDashboard() {
           setBusinessProfile(businessResult.business);
 
           const benefitsResult = await BenefitApiService.getMyBenefits();
-        if (benefitsResult.success) {
+          if (benefitsResult.success) {
             setOffers(benefitsResult.benefits);
           }
         }
@@ -68,7 +68,8 @@ export default function BusinessDashboard() {
     fetchData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     try {
       const businessResult = await BusinessApiService.getMyBusiness();
       if (businessResult.success) {
@@ -82,12 +83,14 @@ export default function BusinessDashboard() {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false); // <--- חשוב מאוד!
+      if (!isRefresh) setLoading(false);
     }
   };
+
+  // שימוש ב-OnRefresh:
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadData();
+    await loadData(true); // שולח flag שזה רפרש
     setRefreshing(false);
   }, []);
 
@@ -132,20 +135,22 @@ export default function BusinessDashboard() {
       Alert.alert("שגיאה", result.error);
     }
   };
-
-  const handleDeleteOffer = async (offerId: string) => {
+  const handleDeleteOffer = (offerId: string) => {
     Alert.alert("מחיקת הטבה", "האם אתה בטוח?", [
       { text: "ביטול", style: "cancel" },
       {
         text: "מחק",
         style: "destructive",
-        onPress: async () => {
-          const result = await BusinessService.deleteOffer(offerId);
-          if (result.success) {
-            setOffers((prev) => prev.filter((o) => o.id !== offerId));
-          } else {
-            Alert.alert("שגיאה", result.error);
-          }
+        onPress: () => {
+          BusinessService.deleteOffer(offerId)
+            .then((result) => {
+              if (result.success) {
+                setOffers((prev) => prev.filter((o) => o.id !== offerId));
+              } else {
+                Alert.alert("שגיאה", result.error);
+              }
+            })
+            .catch((err) => console.error(err));
         },
       },
     ]);

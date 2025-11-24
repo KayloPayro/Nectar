@@ -45,11 +45,13 @@ export default function OfferCreate() {
   const [maxUsage, setMaxUsage] = useState("");
 
   const isFormValid = () => {
+    const dateValid = !isNaN(new Date(validUntil).getTime());
     return (
       title.trim() !== "" &&
       description.trim() !== "" &&
       discount.trim() !== "" &&
-      validUntil.trim() !== ""
+      validUntil.trim() !== "" &&
+      dateValid
     );
   };
 
@@ -62,14 +64,30 @@ export default function OfferCreate() {
     setLoading(true);
 
     const user = await AuthService.getCurrentUser();
+    console.log("DEBUG: current user ->", user); // <--- פה נבדוק מה באמת מוחזר
+
     if (!user) {
       router.replace("/" as any);
+      console.log("DEBUG: no user found, redirecting to /");
+
       return;
     }
 
     const businessProfile = await BusinessService.getBusinessByOwnerId(user.id);
+    console.log("DEBUG: fetched business profile ->", businessProfile); // <--- פה נבדוק מה ה־API מחזיר
+
     if (!businessProfile) {
+      console.log("DEBUG: user id in route:", req.user._id);
+      console.log("DEBUG: no business profile found for user id", user.id);
       Alert.alert("שגיאה", "פרופיל העסק לא נמצא");
+      setLoading(false);
+      return;
+    }
+    const maxUsageNumber =
+      hasMaxUsage && maxUsage ? parseInt(maxUsage, 10) : undefined;
+
+    if (maxUsageNumber !== undefined && isNaN(maxUsageNumber)) {
+      Alert.alert("שגיאה", "מספר שימושים לא חוקי");
       setLoading(false);
       return;
     }
@@ -81,7 +99,7 @@ export default function OfferCreate() {
       validUntil: new Date(validUntil).toISOString(),
       terms: terms || "אין תנאים מיוחדים",
       isActive,
-      maxUsage: hasMaxUsage && maxUsage ? parseInt(maxUsage) : undefined,
+      maxUsage: maxUsageNumber,
     });
 
     setLoading(false);

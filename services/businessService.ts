@@ -1,5 +1,6 @@
 // services/businessService.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "./api";
 
 export interface BusinessProfile {
   id: string;
@@ -44,11 +45,12 @@ export const BusinessService = {
     ownerId: string
   ): Promise<BusinessProfile | null> => {
     try {
+      const res = await api.get(`/business/${ownerId}`);
       const profilesJson = await AsyncStorage.getItem(BUSINESS_PROFILES_KEY);
       const profiles: BusinessProfile[] = profilesJson
         ? JSON.parse(profilesJson)
         : [];
-      return profiles.find((p) => p.ownerId === ownerId) || null;
+      return res.data;
     } catch (error) {
       console.error("Error getting business by owner:", error);
       return null;
