@@ -44,20 +44,45 @@ export default function BusinessDashboard() {
   const [offers, setOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
-    loadData();
+    const fetchData = async () => {
+      try {
+        const user = await AuthService.getCurrentUser();
+        setCurrentUser(user);
+
+        const businessResult = await BusinessApiService.getMyBusiness();
+        if (businessResult.success) {
+          setBusinessProfile(businessResult.business);
+
+          const benefitsResult = await BenefitApiService.getMyBenefits();
+        if (benefitsResult.success) {
+            setOffers(benefitsResult.benefits);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const loadData = async () => {
-    // Get business
-    const businessResult = await BusinessApiService.getMyBusiness();
-    if (businessResult.success) {
-      setBusinessProfile(businessResult.business);
+    try {
+      const businessResult = await BusinessApiService.getMyBusiness();
+      if (businessResult.success) {
+        setBusinessProfile(businessResult.business);
 
-      // Get benefits
-      const benefitsResult = await BenefitApiService.getMyBenefits();
-      if (benefitsResult.success) {
-        setOffers(benefitsResult.benefits);
+        const benefitsResult = await BenefitApiService.getMyBenefits();
+        if (benefitsResult.success) {
+          setOffers(benefitsResult.benefits);
+        }
       }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false); // <--- חשוב מאוד!
     }
   };
   const onRefresh = useCallback(async () => {
