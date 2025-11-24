@@ -1,4 +1,5 @@
 // app/offer-create.tsx
+import { BenefitApiService } from "@/services/benefitApiService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -64,7 +65,7 @@ export default function OfferCreate() {
     setLoading(true);
 
     const user = await AuthService.getCurrentUser();
-    console.log("DEBUG: current user ->", user); // <--- פה נבדוק מה באמת מוחזר
+    console.log("DEBUG: current user ->", user);
 
     if (!user) {
       router.replace("/" as any);
@@ -77,7 +78,6 @@ export default function OfferCreate() {
     console.log("DEBUG: fetched business profile ->", businessProfile); // <--- פה נבדוק מה ה־API מחזיר
 
     if (!businessProfile) {
-      console.log("DEBUG: user id in route:", req.user._id);
       console.log("DEBUG: no business profile found for user id", user.id);
       Alert.alert("שגיאה", "פרופיל העסק לא נמצא");
       setLoading(false);
@@ -92,7 +92,8 @@ export default function OfferCreate() {
       return;
     }
 
-    const result = await BusinessService.createOffer(businessProfile.id, {
+    const result = await BenefitApiService.createBenefit({
+      businessid: businessProfile.businessId,
       title,
       description,
       discount,

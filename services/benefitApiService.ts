@@ -31,6 +31,7 @@ export const BenefitApiService = {
       console.log("📤 Creating benefit...");
       const response = await api.post("/benefits/create", benefitData);
       console.log("✅ Benefit created:", response.data.benefitId);
+      console.log(benefitData);
       return { success: true, benefit: response.data.benefit };
     } catch (error: any) {
       console.error("❌ Create benefit error:", error.response?.data);
