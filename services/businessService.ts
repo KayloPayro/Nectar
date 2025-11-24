@@ -20,6 +20,7 @@ export interface BusinessProfile {
   };
   createdAt: string;
   updatedAt: string;
+  businessId: string;
 }
 
 export interface Offer {
@@ -46,10 +47,6 @@ export const BusinessService = {
   ): Promise<BusinessProfile | null> => {
     try {
       const res = await api.get(`/business/${ownerId}`);
-      const profilesJson = await AsyncStorage.getItem(BUSINESS_PROFILES_KEY);
-      const profiles: BusinessProfile[] = profilesJson
-        ? JSON.parse(profilesJson)
-        : [];
       return res.data;
     } catch (error) {
       console.error("Error getting business by owner:", error);
