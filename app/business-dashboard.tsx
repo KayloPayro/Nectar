@@ -14,12 +14,11 @@ import {
   View,
 } from "react-native";
 import { AuthService, User } from "../services/authService";
-import { BenefitApiService } from "../services/benefitApiService";
+import { Benefit, BenefitApiService } from "../services/benefitApiService";
 import { BusinessApiService } from "../services/businessApiService";
 import {
   BusinessProfile,
   BusinessService,
-  Offer,
 } from "../services/businessService";
 const COLORS = {
   honeyGold: "#F4A259",
@@ -41,7 +40,7 @@ export default function BusinessDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [businessProfile, setBusinessProfile] =
     useState<BusinessProfile | null>(null);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [Benefits, setBenefits] = useState<Benefit[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,7 +54,7 @@ export default function BusinessDashboard() {
 
           const benefitsResult = await BenefitApiService.getMyBenefits();
           if (benefitsResult.success) {
-            setOffers(benefitsResult.benefits);
+            setBenefits(benefitsResult.benefits);
           }
         }
       } catch (error) {
@@ -77,7 +76,7 @@ export default function BusinessDashboard() {
 
         const benefitsResult = await BenefitApiService.getMyBenefits();
         if (benefitsResult.success) {
-          setOffers(benefitsResult.benefits);
+          setBenefits(benefitsResult.benefits);
         }
       }
     } catch (error) {
@@ -116,41 +115,33 @@ export default function BusinessDashboard() {
     router.push("/business-profile-edit" as any);
   };
 
-  const handleAddOffer = () => {
-    router.push("/offer-create" as any);
+  const handleAddbenefit = () => {
+    router.push("/benefit-create" as any);
   };
 
-  const handleToggleOfferStatus = async (offer: Offer) => {
-    const result = await BusinessService.updateOffer(offer.id, {
-      isActive: !offer.isActive,
-    });
+  const handleToggleBenefitstatus = async (benefit: Benefit) => {
+    // const result = await BusinessService.updatebenefit(benefit.id, {
+    //   isActive: !benefit.isActive,
+    // });
 
-    if (result.success) {
-      setOffers((prev) =>
-        prev.map((o) =>
-          o.id === offer.id ? { ...o, isActive: !o.isActive } : o
-        )
-      );
-    } else {
-      Alert.alert("שגיאה", result.error);
-    }
+    // if (result.success) {
+    //   setBenefits((prev) =>
+    //     prev.map((o) =>
+    //       o.id === benefit.id ? { ...o, isActive: !o.isActive } : o
+    //     )
+    //   );
+    // } else {
+    //   Alert.alert("שגיאה", result.error);
+    // }
   };
-  const handleDeleteOffer = (offerId: string) => {
+  const handleDeletebenefit = (benefitId: string) => {
     Alert.alert("מחיקת הטבה", "האם אתה בטוח?", [
       { text: "ביטול", style: "cancel" },
       {
         text: "מחק",
         style: "destructive",
-        onPress: () => {
-          BusinessService.deleteOffer(offerId)
-            .then((result) => {
-              if (result.success) {
-                setOffers((prev) => prev.filter((o) => o.id !== offerId));
-              } else {
-                Alert.alert("שגיאה", result.error);
-              }
-            })
-            .catch((err) => console.error(err));
+        onPress: async () => {
+          await BenefitApiService.deleteBenefit(benefitId);
         },
       },
     ]);
@@ -200,8 +191,8 @@ export default function BusinessDashboard() {
     );
   }
 
-  const activeOffers = offers.filter((o) => o.isActive).length;
-  const totalUsage = offers.reduce((sum, o) => sum + o.usageCount, 0);
+  const activeBenefits = Benefits.filter((o) => o.isActive).length;
+  const totalUsage = Benefits.reduce((sum, o) => sum + o.usageCount, 0);
 
   return (
     <ScrollView
@@ -227,13 +218,13 @@ export default function BusinessDashboard() {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Ionicons name="gift" size={32} color={COLORS.honeyGold} />
-          <Text style={styles.statNumber}>{offers.length}</Text>
+          <Text style={styles.statNumber}>{Benefits.length}</Text>
           <Text style={styles.statLabel}>הטבות</Text>
         </View>
 
         <View style={styles.statCard}>
           <Ionicons name="checkmark-circle" size={32} color={COLORS.mint} />
-          <Text style={styles.statNumber}>{activeOffers}</Text>
+          <Text style={styles.statNumber}>{activeBenefits}</Text>
           <Text style={styles.statLabel}>פעילות</Text>
         </View>
 
@@ -262,93 +253,93 @@ export default function BusinessDashboard() {
           <Text style={styles.actionText}>ערוך פרופיל</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleAddOffer}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleAddbenefit}>
           <Ionicons name="add-circle" size={24} color={COLORS.mint} />
           <Text style={styles.actionText}>הוסף הטבה</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Offers List */}
-      <View style={styles.offersSection}>
+      {/* Benefits List */}
+      <View style={styles.BenefitsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>ההטבות שלי</Text>
           <Ionicons name="gift" size={24} color={COLORS.honeyGold} />
         </View>
 
-        {offers.length === 0 ? (
-          <View style={styles.emptyOffersContainer}>
+        {Benefits.length === 0 ? (
+          <View style={styles.emptyBenefitsContainer}>
             <Ionicons name="gift-outline" size={60} color={COLORS.dustyRose} />
-            <Text style={styles.emptyOffersText}>עדיין אין הטבות</Text>
+            <Text style={styles.emptyBenefitsText}>עדיין אין הטבות</Text>
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={handleAddOffer}
+              onPress={handleAddbenefit}
             >
               <Text style={styles.secondaryButtonText}>צור הטבה ראשונה</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          offers.map((offer) => (
+          Benefits.map((benefit) => (
             <View
-              key={offer.id}
+              key={benefit.benefitId}
               style={[
-                styles.offerCard,
-                !offer.isActive && styles.offerCardInactive,
+                styles.benefitCard,
+                !benefit.isActive && styles.benefitCardInactive,
               ]}
             >
-              <View style={styles.offerHeader}>
-                <View style={styles.offerTitleRow}>
-                  <Text style={styles.offerTitle}>{offer.title}</Text>
-                  {offer.isActive && (
+              <View style={styles.benefitHeader}>
+                <View style={styles.benefitTitleRow}>
+                  <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                  {benefit.isActive && (
                     <View style={styles.activeBadge}>
                       <Text style={styles.activeBadgeText}>פעיל</Text>
                     </View>
                   )}
                 </View>
-                <View style={styles.offerActions}>
+                <View style={styles.benefitActions}>
                   <TouchableOpacity
-                    onPress={() => handleToggleOfferStatus(offer)}
+                    onPress={() => handleToggleBenefitstatus(benefit)}
                   >
                     <Ionicons
-                      name={offer.isActive ? "pause-circle" : "play-circle"}
+                      name={benefit.isActive ? "pause-circle" : "play-circle"}
                       size={28}
-                      color={offer.isActive ? COLORS.amber : COLORS.mint}
+                      color={benefit.isActive ? COLORS.amber : COLORS.mint}
                     />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeleteOffer(offer.id)}>
+                  <TouchableOpacity onPress={() => handleDeletebenefit(benefit.benefitId)}>
                     <Ionicons name="trash" size={24} color={COLORS.error} />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text style={styles.offerDescription} numberOfLines={2}>
-                {offer.description}
+              <Text style={styles.benefitDescription} numberOfLines={2}>
+                {benefit.description}
               </Text>
 
-              <View style={styles.offerDetails}>
-                <View style={styles.offerDetailItem}>
+              <View style={styles.benefitDetails}>
+                <View style={styles.benefitDetailItem}>
                   <Ionicons
                     name="pricetag"
                     size={16}
                     color={COLORS.honeyGold}
                   />
-                  <Text style={styles.offerDetailText}>{offer.discount}</Text>
+                  <Text style={styles.benefitDetailText}>{benefit.discount}</Text>
                 </View>
 
-                <View style={styles.offerDetailItem}>
+                <View style={styles.benefitDetailItem}>
                   <Ionicons name="people" size={16} color={COLORS.mint} />
-                  <Text style={styles.offerDetailText}>
-                    {offer.usageCount} שימושים
+                  <Text style={styles.benefitDetailText}>
+                    {benefit.usageCount} שימושים
                   </Text>
                 </View>
 
-                <View style={styles.offerDetailItem}>
+                <View style={styles.benefitDetailItem}>
                   <Ionicons
                     name="calendar"
                     size={16}
                     color={COLORS.lavenderBlush}
                   />
-                  <Text style={styles.offerDetailText}>
-                    עד {new Date(offer.validUntil).toLocaleDateString("he-IL")}
+                  <Text style={styles.benefitDetailText}>
+                    עד {new Date(benefit.validUntil).toLocaleDateString("he-IL")}
                   </Text>
                 </View>
               </View>
@@ -489,7 +480,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.cream,
   },
-  offersSection: {
+  BenefitsSection: {
     paddingHorizontal: 16,
     paddingBottom: 32,
   },
@@ -504,7 +495,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: COLORS.cream,
   },
-  emptyOffersContainer: {
+  emptyBenefitsContainer: {
     alignItems: "center",
     padding: 40,
     backgroundColor: COLORS.plum,
@@ -512,7 +503,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.lavenderBlush + "20",
   },
-  emptyOffersText: {
+  emptyBenefitsText: {
     fontSize: 16,
     color: COLORS.dustyRose,
     marginTop: 16,
@@ -529,7 +520,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.deepPurple,
   },
-  offerCard: {
+  benefitCard: {
     backgroundColor: COLORS.plum,
     borderRadius: 16,
     padding: 16,
@@ -537,22 +528,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.lavenderBlush + "20",
   },
-  offerCardInactive: {
+  benefitCardInactive: {
     opacity: 0.6,
   },
-  offerHeader: {
+  benefitHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  offerTitleRow: {
+  benefitTitleRow: {
     flex: 1,
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
   },
-  offerTitle: {
+  benefitTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: COLORS.cream,
@@ -569,27 +560,27 @@ const styles = StyleSheet.create({
     color: COLORS.mint,
     fontWeight: "700",
   },
-  offerActions: {
+  benefitActions: {
     flexDirection: "row",
     gap: 12,
   },
-  offerDescription: {
+  benefitDescription: {
     fontSize: 14,
     color: COLORS.lavenderBlush,
     marginBottom: 12,
     lineHeight: 20,
   },
-  offerDetails: {
+  benefitDetails: {
     flexDirection: "row",
     gap: 16,
     flexWrap: "wrap",
   },
-  offerDetailItem: {
+  benefitDetailItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  offerDetailText: {
+  benefitDetailText: {
     fontSize: 13,
     color: COLORS.dustyRose,
     fontWeight: "600",

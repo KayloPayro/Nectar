@@ -32,7 +32,7 @@ const COLORS = {
   error: "#E07A7A",
 };
 
-export default function OfferCreate() {
+export default function BenefitCreate() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
