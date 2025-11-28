@@ -1,4 +1,4 @@
-// app/offer-create.tsx
+// app/benefit-create.tsx
 import { BenefitApiService } from "@/services/benefitApiService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";

@@ -1,5 +1,6 @@
 import { BenefitApiService } from "@/services/benefitApiService";
 import { BusinessApiService } from "@/services/businessApiService";
+import { Benefit } from "@/types/benefit";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getDistance } from "geolib";
@@ -42,23 +43,6 @@ const COLORS = {
   success: "#66C9B5",
   error: "#E07A7A",
 };
-
-interface Benefit {
-  benefitId: string;
-  businessId: string;
-  title: string;
-  description: string;
-  discount: string;
-  validUntil: string;
-  terms: string;
-  isActive: boolean;
-  maxUsage?: {
-    total?: number;
-    perCustomer?: number;
-  };
-  usageCount: number;
-  rewardAmount: number;
-}
 
 interface Business {
   businessId: string;
@@ -323,10 +307,8 @@ export default function BusinessScreen() {
         ]}
       >
         <Text style={styles.businessName}>העסק לא נמצא</Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-        >
-          <Text >חזור</Text>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text>חזור</Text>
         </TouchableOpacity>
       </View>
     );

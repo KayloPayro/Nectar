@@ -89,7 +89,7 @@ export default function BusinessProfileSetup() {
       description,
       image,
       address,
-      coordinates: { lat: 32.0853, lng: 34.7818 }, // Default coords
+      coordinates: { lat: 32.0853, lng: 34.7818 },
       phone,
       email: email || user.email,
       category,
@@ -103,6 +103,9 @@ export default function BusinessProfileSetup() {
         friday: { open: "09:00", close: "14:00" },
         saturday: { open: "09:00", close: "18:00", closed: true },
       },
+      businessId: `BIZ_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
     });
 
     setLoading(false);

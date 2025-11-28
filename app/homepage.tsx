@@ -65,7 +65,6 @@ export default function HomeScreen() {
           radius: 10000,
         }
       : undefined;
-
     const result = await BusinessApiService.getAllBusinesses(params);
 
     if (result.success && result.businesses) {

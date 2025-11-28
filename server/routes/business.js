@@ -79,7 +79,6 @@ router.post(
 
 // GET /api/business/my-business - Get business by owner
 router.get("/my-business", authenticate, isBusiness, async (req, res) => {
-  console.log("DEBUG: user id in route:", req.user._id);
   try {
     const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
 
@@ -100,7 +99,7 @@ router.get("/my-business", authenticate, isBusiness, async (req, res) => {
 router.get("/:businessId", async (req, res) => {
   try {
     const business = await Business.findOne({
-      ownerId: req.params.businessId,
+      businessId: req.params.businessId,
       isActive: true,
     });
 

@@ -14,12 +14,13 @@ import {
   View,
 } from "react-native";
 import { AuthService, User } from "../services/authService";
-import { Benefit, BenefitApiService } from "../services/benefitApiService";
+import { BenefitApiService } from "../services/benefitApiService";
 import { BusinessApiService } from "../services/businessApiService";
 import {
   BusinessProfile,
   BusinessService,
 } from "../services/businessService";
+import { Benefit } from "@/types/benefit";
 const COLORS = {
   honeyGold: "#F4A259",
   amber: "#F2CC8F",

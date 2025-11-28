@@ -1,7 +1,6 @@
 // services/businessService.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./api";
-import { Benefit } from "./benefitApiService";
 
 export interface BusinessProfile {
   id: string;
