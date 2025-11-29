@@ -1,4 +1,5 @@
 // app/business-dashboard.tsx
+import { Benefit } from "@/types/benefit";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -16,11 +17,7 @@ import {
 import { AuthService, User } from "../services/authService";
 import { BenefitApiService } from "../services/benefitApiService";
 import { BusinessApiService } from "../services/businessApiService";
-import {
-  BusinessProfile,
-  BusinessService,
-} from "../services/businessService";
-import { Benefit } from "@/types/benefit";
+import { BusinessProfile } from "../services/businessService";
 const COLORS = {
   honeyGold: "#F4A259",
   amber: "#F2CC8F",
@@ -124,7 +121,6 @@ export default function BusinessDashboard() {
     // const result = await BusinessService.updatebenefit(benefit.id, {
     //   isActive: !benefit.isActive,
     // });
-
     // if (result.success) {
     //   setBenefits((prev) =>
     //     prev.map((o) =>
@@ -254,7 +250,10 @@ export default function BusinessDashboard() {
           <Text style={styles.actionText}>ערוך פרופיל</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleAddbenefit}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleAddbenefit}
+        >
           <Ionicons name="add-circle" size={24} color={COLORS.mint} />
           <Text style={styles.actionText}>הוסף הטבה</Text>
         </TouchableOpacity>
@@ -306,7 +305,9 @@ export default function BusinessDashboard() {
                       color={benefit.isActive ? COLORS.amber : COLORS.mint}
                     />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeletebenefit(benefit.benefitId)}>
+                  <TouchableOpacity
+                    onPress={() => handleDeletebenefit(benefit.benefitId)}
+                  >
                     <Ionicons name="trash" size={24} color={COLORS.error} />
                   </TouchableOpacity>
                 </View>
@@ -323,7 +324,9 @@ export default function BusinessDashboard() {
                     size={16}
                     color={COLORS.honeyGold}
                   />
-                  <Text style={styles.benefitDetailText}>{benefit.discount}</Text>
+                  <Text style={styles.benefitDetailText}>
+                    {benefit.discount}
+                  </Text>
                 </View>
 
                 <View style={styles.benefitDetailItem}>
@@ -340,7 +343,8 @@ export default function BusinessDashboard() {
                     color={COLORS.lavenderBlush}
                   />
                   <Text style={styles.benefitDetailText}>
-                    עד {new Date(benefit.validUntil).toLocaleDateString("he-IL")}
+                    עד{" "}
+                    {new Date(benefit.validUntil).toLocaleDateString("he-IL")}
                   </Text>
                 </View>
               </View>

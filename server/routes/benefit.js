@@ -61,7 +61,7 @@ router.post(
       // Get business
       const business = await Business.findOne({ ownerId: req.user._id });
       if (!business) {
-        return res.status(404).json({ error: "עסק לא נמצא" });
+        return res.status(404).json({ error: "עסק לא נמצא sdsdfgd" });
       }
 
       const {
@@ -124,7 +124,7 @@ router.get("/my-benefits", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא dsdsdfgg" });
     }
 
     const benefits = await Benefit.find({
@@ -147,7 +147,7 @@ router.put("/:benefitId", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא blblbl" });
     }
 
     const benefit = await Benefit.findOne({
@@ -190,7 +190,7 @@ router.delete("/:benefitId", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא dssdsd" });
     }
 
     const benefit = await Benefit.findOneAndDelete({

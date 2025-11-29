@@ -14,22 +14,33 @@ router.post(
   authenticate,
   isBusiness,
   [
-    body("name").trim().notEmpty(),
-    body("description").trim().notEmpty(),
-    body("category").trim().notEmpty(),
-    body("address.street").trim().notEmpty(),
-    body("address.city").trim().notEmpty(),
-    body("phone").trim().notEmpty(),
+    body("name").trim().notEmpty().withMessage("שם העסק חובה"),
+    body("description").trim().notEmpty().withMessage("תיאור חובה"),
+    body("category").trim().notEmpty().withMessage("קטגוריה חובה"),
+    body("address.street").trim().notEmpty().withMessage("רחוב חובה"),
+    body("address.city").trim().notEmpty().withMessage("עיר חובה"),
+    body("address.coordinates.lat")
+      .isNumeric()
+      .withMessage("קואורדינטות lat חובה"),
+    body("address.coordinates.lng")
+      .isNumeric()
+      .withMessage("קואורדינטות lng חובה"),
+    body("phone").trim().notEmpty().withMessage("טלפון חובה"),
   ],
   async (req, res) => {
     try {
+      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        console.log("❌ Validation errors:", errors.array());
+        return res.status(400).json({
+          error: "שגיאה בנתונים",
+          details: errors.array(),
+        });
       }
 
       // Convert ownerId to ObjectId
-      const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+      const ownerObjectId = new mongoose.Types.ObjectId(req.user.userId);
 
       // Check if business already exists for this owner
       const existingBusiness = await Business.findOne({
@@ -37,6 +48,7 @@ router.post(
       });
 
       if (existingBusiness) {
+        console.log("❌ Business already exists for user:", req.user.userId);
         return res.status(400).json({ error: "כבר קיים עסק עבור משתמש זה" });
       }
 
@@ -52,27 +64,65 @@ router.post(
         openingHours,
       } = req.body;
 
+      console.log("📝 Creating business with data:", {
+        name,
+        category,
+        address,
+        ownerId: ownerObjectId,
+      });
+
+      // ✅ Generate unique businessId on SERVER
+      const businessId = `BIZ_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // ✅ Create business with correct structure
       const business = await Business.create({
+        businessId,
         ownerId: ownerObjectId,
         name,
         description,
         category,
-        address,
+        address: {
+          street: address.street,
+          city: address.city,
+          coordinates: {
+            lat: address.coordinates.lat,
+            lng: address.coordinates.lng,
+          },
+        },
         phone,
         email: email || req.user.email,
         image: image || "https://picsum.photos/400/300",
         tags: tags || [],
-        openingHours: openingHours || {},
+        openingHours: openingHours || {
+          sunday: { open: "09:00", close: "18:00" },
+          monday: { open: "09:00", close: "18:00" },
+          tuesday: { open: "09:00", close: "18:00" },
+          wednesday: { open: "09:00", close: "18:00" },
+          thursday: { open: "09:00", close: "18:00" },
+          friday: { open: "09:00", close: "14:00" },
+          saturday: { open: "09:00", close: "18:00", closed: true },
+        },
+        rating: 0,
+        totalReviews: 0,
+        isActive: true,
       });
+
+      console.log("✅ Business created successfully:", business.businessId);
 
       res.status(201).json({
         success: true,
+        message: "עסק נוצר בהצלחה",
         businessId: business.businessId,
         business,
       });
     } catch (error) {
-      console.error("Business registration error:", error);
-      res.status(500).json({ error: "שגיאה ביצירת עסק" });
+      console.error("❌ Business registration error:", error);
+      res.status(500).json({
+        error: "שגיאה ביצירת עסק",
+        details: error.message,
+      });
     }
   }
 );
@@ -85,7 +135,7 @@ router.get("/my-business", authenticate, isBusiness, async (req, res) => {
     const business = await Business.findOne({ ownerId: ownerObjectId });
 
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא/my-business " });
     }
 
     res.json({ success: true, business });
@@ -104,7 +154,7 @@ router.get("/:businessId", async (req, res) => {
     });
 
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא /:businessId" });
     }
 
     res.json({ success: true, business });
@@ -192,7 +242,7 @@ router.put("/:businessId", authenticate, isBusiness, async (req, res) => {
     });
 
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "עסק לא נמצא " });
     }
 
     const allowedUpdates = [
@@ -235,7 +285,7 @@ router.get("/:businessId/stats", authenticate, isBusiness, async (req, res) => {
     });
 
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא" });
+      return res.status(404).json({ error: "/:businessId/statsעסק לא נמצא" });
     }
 
     const benefits = await Benefit.find({ businessId: business.businessId });

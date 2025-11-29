@@ -48,7 +48,7 @@ export const BusinessApiService = {
       console.log("✅ Business loaded:", response.data.business?.name);
       return { success: true, business: response.data.business };
     } catch (error: any) {
-      console.error("❌ Get business error:", error.response?.data);
+      console.error("❌ testGet business error:", error.response?.data);
       return {
         success: false,
         error: error.response?.data?.error || "שגיאה בטעינת עסק",
@@ -63,10 +63,10 @@ export const BusinessApiService = {
       const response = await api.get(`/business/${businessId}`);
       return { success: true, business: response.data.business };
     } catch (error: any) {
-      console.error("❌ Get business error:", error.response?.data);
+      console.error("❌ lalaGet business error:", error.response?.data);
       return {
         success: false,
-        error: error.response?.data?.error || "עסק לא נמצא",
+        error: error.response?.data?.error || "עסק לא נמצא lalal",
       };
     }
   },

@@ -1,4 +1,5 @@
 // app/business-profile-setup.tsx
+import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -16,7 +17,6 @@ import {
   View,
 } from "react-native";
 import { AuthService } from "../services/authService";
-import { BusinessService } from "../services/businessService";
 
 const COLORS = {
   honeyGold: "#F4A259",
@@ -75,24 +75,34 @@ export default function BusinessProfileSetup() {
 
     const user = await AuthService.getCurrentUser();
     if (!user) {
+      Alert.alert("שגיאה", "לא נמצא משתמש מחובר");
       router.replace("/" as any);
       return;
     }
+
+    console.log("📝 User ID:", user.id);
 
     const tagsArray = tags
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t !== "");
 
-    const result = await BusinessService.createBusinessProfile(user.id, {
+    // ✅ מבנה נכון לפי מה שהשרת מצפה
+    const businessData = {
       name,
       description,
-      image,
-      address,
-      coordinates: { lat: 32.0853, lng: 34.7818 },
+      category,
+      address: {
+        street: "רחוב רוטשילד 45",
+        city: "תל אביב",
+        coordinates: {
+          lat: 32.0656,
+          lng: 34.7748,
+        },
+      },
       phone,
       email: email || user.email,
-      category,
+      image,
       tags: tagsArray,
       openingHours: {
         sunday: { open: "09:00", close: "18:00" },
@@ -103,14 +113,16 @@ export default function BusinessProfileSetup() {
         friday: { open: "09:00", close: "14:00" },
         saturday: { open: "09:00", close: "18:00", closed: true },
       },
-      businessId: `BIZ_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-    });
+    };
+
+    console.log("📤 Sending business data:", businessData);
+
+    const result = await BusinessApiService.registerBusiness(businessData);
 
     setLoading(false);
 
     if (result.success) {
+      console.log("✅ Business created successfully!");
       Alert.alert("הצלחה!", "הפרופיל נוצר בהצלחה", [
         {
           text: "אישור",
@@ -118,7 +130,8 @@ export default function BusinessProfileSetup() {
         },
       ]);
     } else {
-      Alert.alert("שגיאה", result.error);
+      console.error("❌ Failed to create business:", result.error);
+      Alert.alert("שגיאה", result.error || "שגיאה ביצירת פרופיל");
     }
   };
 
