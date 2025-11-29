@@ -29,7 +29,6 @@ router.post(
   ],
   async (req, res) => {
     try {
-      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         console.log("❌ Validation errors:", errors.array());
@@ -39,16 +38,28 @@ router.post(
         });
       }
 
-      // Convert ownerId to ObjectId
-      const ownerObjectId = new mongoose.Types.ObjectId(req.user.userId);
+      // ✅ תיקון: בדוק אם _id קיים ותפוס שגיאות
+      if (!req.user?._id) {
+        console.error("❌ req.user._id is missing!");
+        console.error("req.user:", req.user);
+        return res.status(400).json({ error: "שגיאה: לא נמצא מזהה משתמש" });
+      }
 
-      // Check if business already exists for this owner
+      let ownerObjectId;
+      try {
+        ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+        console.log("👤 Creating business for ownerId:", ownerObjectId);
+      } catch (err) {
+        console.error("❌ Failed to create ObjectId:", err);
+        return res.status(400).json({ error: "מזהה משתמש לא תקין" });
+      }
+
+      // Check if business already exists
       const existingBusiness = await Business.findOne({
         ownerId: ownerObjectId,
       });
-
       if (existingBusiness) {
-        console.log("❌ Business already exists for user:", req.user.userId);
+        console.log("❌ Business already exists for user:", ownerObjectId);
         return res.status(400).json({ error: "כבר קיים עסק עבור משתמש זה" });
       }
 
@@ -64,19 +75,10 @@ router.post(
         openingHours,
       } = req.body;
 
-      console.log("📝 Creating business with data:", {
-        name,
-        category,
-        address,
-        ownerId: ownerObjectId,
-      });
-
-      // ✅ Generate unique businessId on SERVER
       const businessId = `BIZ_${Date.now()}_${Math.random()
         .toString(36)
         .substr(2, 9)}`;
 
-      // ✅ Create business with correct structure
       const business = await Business.create({
         businessId,
         ownerId: ownerObjectId,
@@ -110,7 +112,6 @@ router.post(
       });
 
       console.log("✅ Business created successfully:", business.businessId);
-
       res.status(201).json({
         success: true,
         message: "עסק נוצר בהצלחה",
@@ -119,9 +120,13 @@ router.post(
       });
     } catch (error) {
       console.error("❌ Business registration error:", error);
+      console.error("❌ Error name:", error.name);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error stack:", error.stack);
       res.status(500).json({
         error: "שגיאה ביצירת עסק",
         details: error.message,
+        errorName: error.name,
       });
     }
   }
@@ -130,18 +135,50 @@ router.post(
 // GET /api/business/my-business - Get business by owner
 router.get("/my-business", authenticate, isBusiness, async (req, res) => {
   try {
-    const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+    console.log("=== GET /my-business ===");
+    console.log("req.user:", req.user);
 
-    const business = await Business.findOne({ ownerId: ownerObjectId });
-
-    if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא/my-business " });
+    // ✅ תיקון: השתמש ב-_id מה-user object שחזר מהמסד נתונים
+    if (!req.user?._id) {
+      console.warn("❌ req.user._id לא קיים");
+      return res.status(401).json({ error: "לא מחובר או טוקן לא תקין" });
     }
 
+    // ✅ המרה ישירה ל-ObjectId
+    let ownerObjectId;
+    try {
+      ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
+      console.log("🔍 Looking for business with ownerId:", ownerObjectId);
+    } catch (err) {
+      console.error("❌ Failed to create ObjectId:", err);
+      return res.status(400).json({ error: "מזהה משתמש לא תקין" });
+    }
+
+    const business = await Business.findOne({ ownerId: ownerObjectId });
+    console.log("business found:", business);
+
+    if (!business) {
+      console.warn("❌ עסק לא נמצא עבור ownerId:", ownerObjectId);
+      return res.status(404).json({
+        error: "עסק לא נמצא",
+        debug: {
+          searchedOwnerId: ownerObjectId.toString(),
+          userId: req.user._id.toString(),
+        },
+      });
+    }
+
+    console.log("✅ העסק נשלף בהצלחה:", business.businessId);
     res.json({ success: true, business });
   } catch (error) {
-    console.error("Get business error:", error);
-    res.status(500).json({ error: "שגיאה בטעינת עסק" });
+    console.error("❌ Get business error:", error);
+    if (error instanceof mongoose.Error.CastError) {
+      return res.status(400).json({ error: "ownerId לא תקין" });
+    }
+    res.status(500).json({
+      error: "שגיאה בטעינת עסק",
+      details: error.message,
+    });
   }
 });
 

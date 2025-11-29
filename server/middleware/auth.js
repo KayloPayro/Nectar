@@ -18,6 +18,8 @@ const authenticate = async (req, res, next) => {
       process.env.JWT_SECRET || "nectar-secret-key"
     );
 
+    console.log("🔐 Decoded JWT:", decoded);
+
     // Get user from database
     const user = await User.findById(decoded.userId).select("-password");
 
@@ -29,8 +31,17 @@ const authenticate = async (req, res, next) => {
       return res.status(403).json({ error: "חשבון לא פעיל" });
     }
 
-    // Attach user to request
-    req.user = user;
+    // ✅ תיקון: ודא ש-_id קיים על req.user
+    req.user = {
+      _id: user._id,
+      id: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      type: user.type,
+      phone: user.phone,
+    };
+
+    console.log("✅ Authenticated user:", req.user);
     next();
   } catch (error) {
     console.error("Authentication error:", error);
