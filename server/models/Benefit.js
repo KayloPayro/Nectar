@@ -1,15 +1,10 @@
 const mongoose = require("mongoose");
 
 const benefitSchema = new mongoose.Schema({
-  benefitId: {
-    type: String,
-    unique: true,
-    sparse: true, // ✅ הוספנו sparse
-  },
   businessId: {
-    type: String,
-    required: true,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Business",
+    required: true,
   },
   title: {
     type: String,
@@ -57,14 +52,9 @@ const benefitSchema = new mongoose.Schema({
   },
 });
 
-// ✅ שינינו ל-pre('validate')
-benefitSchema.pre("validate", function (next) {
-  if (!this.benefitId) {
-    this.benefitId = `BEN_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
-  }
-  next();
-});
+// Indexes
+benefitSchema.index({ businessId: 1 });
+benefitSchema.index({ isActive: 1 });
+benefitSchema.index({ validUntil: 1 });
 
 module.exports = mongoose.model("Benefit", benefitSchema);

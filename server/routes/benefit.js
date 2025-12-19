@@ -122,7 +122,7 @@ router.post(
       } = req.body;
 
       const benefit = await Benefit.create({
-        businessId: business.businessId,
+        businessId: business._id, // ✅ ObjectId במקום string
         title,
         description,
         discount,
@@ -135,7 +135,7 @@ router.post(
 
       res.status(201).json({
         success: true,
-        benefitId: benefit.benefitId,
+        benefitId: benefit._id,
         benefit,
       });
     } catch (error) {
@@ -149,7 +149,7 @@ router.post(
 router.get("/business/:businessId", async (req, res) => {
   try {
     const benefits = await Benefit.find({
-      businessId: req.params.businessId,
+      businessId: req.params.businessId, // ✅ זה ObjectId
       isActive: true,
       validUntil: { $gte: new Date() },
     }).sort({ createdAt: -1 });
@@ -172,9 +172,8 @@ router.get("/my-benefits", authenticate, isBusiness, async (req, res) => {
     if (!business) {
       return res.status(404).json({ error: "עסק לא נמצא" });
     }
-
     const benefits = await Benefit.find({
-      businessId: business.businessId,
+      businessId: business._id,
     }).sort({ createdAt: -1 });
 
     res.json({
@@ -197,8 +196,8 @@ router.put("/:benefitId", authenticate, isBusiness, async (req, res) => {
     }
 
     const benefit = await Benefit.findOne({
-      benefitId: req.params.benefitId,
-      businessId: business.businessId,
+      _id: req.params.benefitId,
+      businessId: business._id,
     });
 
     if (!benefit) {
@@ -238,9 +237,9 @@ router.delete("/:benefitId", authenticate, isBusiness, async (req, res) => {
       return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
-    const benefit = await Benefit.findOneAndDelete({
-      benefitId: req.params.benefitId,
-      businessId: business.businessId,
+    const benefit = await Benefit.findOne({
+      _id: req.params.benefitId,
+      businessId: business._id,
     });
 
     if (!benefit) {
@@ -267,7 +266,7 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       return res.status(401).json({ error: "משתמש לא מזוהה" });
     }
 
-    const benefit = await Benefit.findOne({ benefitId });
+    const benefit = await Benefit.findById(benefitId);
     if (!benefit) {
       return res.status(404).json({ error: "הטבה לא נמצאה" });
     }
@@ -345,8 +344,8 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     console.log("💾 Creating CustomerBenefit...");
     const customerBenefit = await CustomerBenefit.create({
       customerId: customerId,
-      businessId: benefit.businessId,
-      benefitId: benefit.benefitId,
+      businessId: benefit.businessId, // ✅ ObjectId
+      benefitId: benefit._id, // ✅ ObjectId
       displayCode,
       qrData,
       expiresAt: benefit.validUntil,
@@ -428,9 +427,9 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
     }
 
     const customerBenefit = await CustomerBenefit.findOne({
-      customerId,
-      benefitId,
-      businessId,
+      customerId: mongoose.Types.ObjectId(customerId),
+      benefitId: mongoose.Types.ObjectId(benefitId),
+      businessId: mongoose.Types.ObjectId(businessId),
     });
 
     if (!customerBenefit) {
@@ -495,7 +494,10 @@ router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
   try {
     const codes = await CustomerBenefit.find({
       customerId: req.user._id,
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .populate("benefitId")
+      .populate("businessId");
 
     // Manually fetch related benefits and businesses
     const enrichedCodes = await Promise.all(
@@ -517,8 +519,8 @@ router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
 
     res.json({
       success: true,
-      count: enrichedCodes.length,
-      codes: enrichedCodes,
+      count: codes.length,
+      codes, // ✅ עכשיו יש benefit ו-business מלאים!
     });
   } catch (error) {
     console.error("Get codes error:", error);

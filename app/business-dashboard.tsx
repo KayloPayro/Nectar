@@ -280,7 +280,7 @@ export default function BusinessDashboard() {
         ) : (
           Benefits.map((benefit) => (
             <View
-              key={benefit.benefitId}
+              key={benefit._id?.toString() || benefit.benefitId}
               style={[
                 styles.benefitCard,
                 !benefit.isActive && styles.benefitCardInactive,

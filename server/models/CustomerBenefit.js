@@ -1,29 +1,25 @@
 const mongoose = require("mongoose");
 
 const customerBenefitSchema = new mongoose.Schema({
-  customerBenefitCode: {
-    type: String,
-    unique: true,
-    // ✅ לא הוספנו required: true כי זה נוצר ב-hook
-  },
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
   businessId: {
-    type: String,
-    required: true,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Business",
+    required: true,
   },
   benefitId: {
-    type: String,
-    required: true,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Benefit",
+    required: true,
   },
   displayCode: {
     type: String,
     required: true,
+    unique: true,
   },
   qrData: {
     type: String,
@@ -46,19 +42,24 @@ const customerBenefitSchema = new mongoose.Schema({
   expiresAt: Date,
 });
 
-// ✅ שינוי מ-pre('save') ל-pre('validate') - רק זה!
+// Generate unique display code
 customerBenefitSchema.pre("validate", function (next) {
-  if (!this.customerBenefitCode) {
-    this.customerBenefitCode = `CBF_${Date.now()}_${Math.random()
+  if (!this.displayCode) {
+    this.displayCode = `CODE_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
   }
   next();
 });
 
-// Check if expired
 customerBenefitSchema.methods.isExpired = function () {
   return this.expiresAt && new Date() > this.expiresAt;
 };
+
+// Indexes
+customerBenefitSchema.index({ customerId: 1 });
+customerBenefitSchema.index({ benefitId: 1 });
+customerBenefitSchema.index({ status: 1 });
+customerBenefitSchema.index({ displayCode: 1 });
 
 module.exports = mongoose.model("CustomerBenefit", customerBenefitSchema);

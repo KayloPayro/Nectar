@@ -160,7 +160,7 @@ export default function HomeScreen() {
 
   const handleCardPress = (item: Business) => {
     // ✅ תיקון: השתמש ב-businessId תמיד
-    const id = item.businessId;
+    const id = item._id;
 
     if (!id) {
       console.error("❌ Business has no businessId:", item);

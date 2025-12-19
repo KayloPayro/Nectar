@@ -93,7 +93,7 @@ export default function BenefitCreate() {
     }
 
     const result = await BenefitApiService.createBenefit({
-      businessid: businessProfile.businessId,
+      // ✅ השרת יחלץ את businessId מה-user
       title,
       description,
       discount,

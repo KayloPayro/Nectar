@@ -5,6 +5,7 @@ const businessSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+    unique: true, // כל user יכול רק עסק אחד
   },
   name: {
     type: String,
@@ -60,19 +61,14 @@ const businessSchema = new mongoose.Schema({
   },
 });
 
-// ✅ שינינו ל-pre('validate') במקום pre('save')
-businessSchema.pre("validate", function (next) {
-  if (!this.businessId) {
-    this.businessId = `BIZ_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
-  }
-  next();
-});
-
 businessSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
+
+// Index for faster queries
+businessSchema.index({ ownerId: 1 });
+businessSchema.index({ category: 1 });
+businessSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model("Business", businessSchema);

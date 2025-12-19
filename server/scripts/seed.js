@@ -59,7 +59,7 @@ const seedDatabase = async () => {
     // Create businesses
     console.log("🏢 Creating businesses...");
 
-    const pizzaBusiness = new Business({
+    const pizzaBusiness = await Business.create({
       ownerId: businessUser1._id,
       name: "פיצה איטליה",
       description: "פיצה איטלקית אותנטית עם מרכיבים טריים",
@@ -88,9 +88,8 @@ const seedDatabase = async () => {
       rating: 4.5,
       totalReviews: 120,
     });
-    await pizzaBusiness.save();
 
-    const cafeBusiness = new Business({
+    const cafeBusiness = await Business.create({
       ownerId: businessUser2._id,
       name: "קפה נקטר",
       description: "בית קפה מקסים עם אווירה חמימה וקפה משובח",
@@ -119,19 +118,20 @@ const seedDatabase = async () => {
       rating: 4.8,
       totalReviews: 89,
     });
-    await cafeBusiness.save();
 
     console.log("✅ Businesses created");
+    console.log(`   🍕 Pizza Business._id: ${pizzaBusiness._id}`);
+    console.log(`   ☕ Cafe Business._id: ${cafeBusiness._id}`);
 
     // Create benefits
     console.log("🎁 Creating benefits...");
 
-    const benefit1 = new Benefit({
-      businessId: pizzaBusiness.businessId,
+    const benefit1 = await Benefit.create({
+      businessId: pizzaBusiness._id, // ✅ עכשיו זה הבusiness האמיתי!
       title: "2 פיצות במחיר של 1",
       description: "קנה פיצה משפחתית וקבל שנייה חינם!",
       discount: "50%",
-      validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+      validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
       terms: "תקף פעם אחת לחודש, לא ניתן לשילוב עם הנחות אחרות",
       maxUsage: {
         total: 1000,
@@ -144,14 +144,13 @@ const seedDatabase = async () => {
       rewardAmount: 10,
       isActive: true,
     });
-    await benefit1.save();
 
-    const benefit2 = new Benefit({
-      businessId: pizzaBusiness.businessId,
+    const benefit2 = await Benefit.create({
+      businessId: pizzaBusiness._id, // ✅
       title: "20% הנחה על כל התפריט",
       description: "הנחה מדהימה על כל המנות במסעדה",
       discount: "20%",
-      validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+      validUntil: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       terms: "תקף בימי ראשון-חמישי בלבד",
       maxUsage: {
         perCustomer: 3,
@@ -159,14 +158,13 @@ const seedDatabase = async () => {
       rewardAmount: 5,
       isActive: true,
     });
-    await benefit2.save();
 
-    const benefit3 = new Benefit({
-      businessId: cafeBusiness.businessId,
+    const benefit3 = await Benefit.create({
+      businessId: cafeBusiness._id, // ✅
       title: 'קפה + עוגה ב-25 ש"ח',
       description: "מארז מיוחד: קפה לבחירתך + עוגת בית",
       discount: '25 ש"ח',
-      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       terms: "תקף בימים א-ה בין 14:00-17:00",
       maxUsage: {
         total: 500,
@@ -179,14 +177,13 @@ const seedDatabase = async () => {
       rewardAmount: 7,
       isActive: true,
     });
-    await benefit3.save();
 
-    const benefit4 = new Benefit({
-      businessId: cafeBusiness.businessId,
+    const benefit4 = await Benefit.create({
+      businessId: cafeBusiness._id, // ✅
       title: 'ארוחת בוקר זוגית ב-99 ש"ח',
       description: "ארוחת בוקר מושלמת לשניים",
       discount: '99 ש"ח',
-      validUntil: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days
+      validUntil: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
       terms: "תקף בסופי שבוע בלבד, עד 12:00",
       maxUsage: {
         total: 200,
@@ -195,15 +192,21 @@ const seedDatabase = async () => {
       rewardAmount: 15,
       isActive: true,
     });
-    await benefit4.save();
 
     console.log("✅ Benefits created");
+    console.log(`   Benefit 1 -> Business: ${benefit1.businessId}`);
+    console.log(`   Benefit 2 -> Business: ${benefit2.businessId}`);
+    console.log(`   Benefit 3 -> Business: ${benefit3.businessId}`);
+    console.log(`   Benefit 4 -> Business: ${benefit4.businessId}`);
 
     console.log("\n🎉 Seed completed successfully!");
     console.log("\n📝 Test accounts:");
     console.log("   Customer: customer@nectar.com / 123456");
     console.log("   Pizza Business: pizza@nectar.com / 123456");
     console.log("   Cafe Business: cafe@nectar.com / 123456");
+    console.log("\n🏢 Business IDs (use these in API calls):");
+    console.log(`   Pizza: ${pizzaBusiness._id}`);
+    console.log(`   Cafe: ${cafeBusiness._id}`);
     console.log("\n🚀 You can now test the API!");
 
     process.exit(0);

@@ -75,12 +75,7 @@ router.post(
         openingHours,
       } = req.body;
 
-      const businessId = `BIZ_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
-
       const business = await Business.create({
-        businessId,
         ownerId: ownerObjectId,
         name,
         description,
@@ -114,8 +109,7 @@ router.post(
       console.log("✅ Business created successfully:", business.businessId);
       res.status(201).json({
         success: true,
-        message: "עסק נוצר בהצלחה",
-        businessId: business.businessId,
+        businessId: business._id,
         business,
       });
     } catch (error) {
@@ -185,10 +179,7 @@ router.get("/my-business", authenticate, isBusiness, async (req, res) => {
 // GET /api/business/:businessId - Get business by ID (public)
 router.get("/:businessId", async (req, res) => {
   try {
-    const business = await Business.findOne({
-      businessId: req.params.businessId,
-      isActive: true,
-    });
+    const business = await Business.findById(req.params.businessId);
 
     if (!business) {
       return res.status(404).json({ error: "עסק לא נמצא /:businessId" });
@@ -274,7 +265,7 @@ router.put("/:businessId", authenticate, isBusiness, async (req, res) => {
     const ownerObjectId = new mongoose.Types.ObjectId(req.user._id);
 
     const business = await Business.findOne({
-      businessId: req.params.businessId,
+      _id: req.params.businessId,
       ownerId: ownerObjectId,
     });
 
