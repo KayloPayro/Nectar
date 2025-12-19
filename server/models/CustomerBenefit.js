@@ -1,39 +1,38 @@
-// server/models/CustomerBenefit.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const customerBenefitSchema = new mongoose.Schema({
   customerBenefitCode: {
     type: String,
     unique: true,
-    required: true,
+    // ✅ לא הוספנו required: true כי זה נוצר ב-hook
   },
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   businessId: {
     type: String,
     required: true,
-    ref: 'Business',
+    ref: "Business",
   },
   benefitId: {
     type: String,
     required: true,
-    ref: 'Benefit',
+    ref: "Benefit",
   },
   displayCode: {
-    type: String, // User-friendly code like "itay_pizza"
+    type: String,
     required: true,
   },
   qrData: {
-    type: String, // Encrypted QR code data
+    type: String,
     required: true,
   },
   status: {
     type: String,
-    enum: ['active', 'redeemed', 'expired', 'cancelled'],
-    default: 'active',
+    enum: ["active", "redeemed", "expired", "cancelled"],
+    default: "active",
   },
   createdAt: {
     type: Date,
@@ -42,15 +41,17 @@ const customerBenefitSchema = new mongoose.Schema({
   redeemedAt: Date,
   redeemedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // The waiter/staff who scanned it
+    ref: "User",
   },
   expiresAt: Date,
 });
 
-// Generate unique code before save
-customerBenefitSchema.pre('save', function (next) {
+// ✅ שינוי מ-pre('save') ל-pre('validate') - רק זה!
+customerBenefitSchema.pre("validate", function (next) {
   if (!this.customerBenefitCode) {
-    this.customerBenefitCode = `CBF_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.customerBenefitCode = `CBF_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
   }
   next();
 });
@@ -60,4 +61,4 @@ customerBenefitSchema.methods.isExpired = function () {
   return this.expiresAt && new Date() > this.expiresAt;
 };
 
-module.exports = mongoose.model('CustomerBenefit', customerBenefitSchema);
+module.exports = mongoose.model("CustomerBenefit", customerBenefitSchema);

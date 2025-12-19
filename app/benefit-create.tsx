@@ -75,7 +75,7 @@ export default function BenefitCreate() {
     }
 
     const businessProfile = await BusinessService.getBusinessByOwnerId(user.id);
-    console.log("DEBUG: fetched business profile ->", businessProfile); // <--- פה נבדוק מה ה־API מחזיר
+    console.log("DEBUG: fetched business profile ->", businessProfile);
 
     if (!businessProfile) {
       console.log("DEBUG: no business profile found for user id", user.id);

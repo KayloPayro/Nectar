@@ -1,6 +1,6 @@
-// server/routes/benefit.js
 const express = require("express");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const Benefit = require("../models/Benefit");
 const Business = require("../models/Business");
 const CustomerBenefit = require("../models/CustomerBenefit");
@@ -10,35 +10,82 @@ const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
 
-// Encryption helpers
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32);
 const IV_LENGTH = 16;
 
+function getEncryptionKey() {
+  if (process.env.ENCRYPTION_KEY) {
+    const hash = crypto
+      .createHash("sha256")
+      .update(process.env.ENCRYPTION_KEY)
+      .digest();
+    return hash;
+  }
+  return crypto.randomBytes(32);
+}
+
+const ENCRYPTION_KEY = getEncryptionKey();
+
 function encrypt(text) {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(
-    "aes-256-cbc",
-    Buffer.from(ENCRYPTION_KEY),
-    iv
-  );
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return iv.toString("hex") + ":" + encrypted;
+  } catch (error) {
+    console.error("❌ Encryption error:", error.message);
+    throw new Error("שגיאה בהצפנת נתונים");
+  }
 }
 
 function decrypt(text) {
-  const parts = text.split(":");
-  const iv = Buffer.from(parts.shift(), "hex");
-  const encryptedText = Buffer.from(parts.join(":"), "hex");
-  const decipher = crypto.createDecipheriv(
-    "aes-256-cbc",
-    Buffer.from(ENCRYPTION_KEY),
-    iv
-  );
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+  try {
+    const parts = text.split(":");
+    const iv = Buffer.from(parts.shift(), "hex");
+    const encryptedText = parts.join(":");
+    const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    console.error("❌ Decryption error:", error.message);
+    throw new Error("שגיאה בפענוח נתונים");
+  }
 }
+
+// ============================================
+// Helper Functions
+// ============================================
+function generateDisplayCode(userName, benefitTitle) {
+  const nameSlug = userName.toLowerCase().replace(/\s+/g, "_").substring(0, 10);
+  const titleSlug = benefitTitle
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .substring(0, 10);
+  const random = Math.random().toString(36).substring(2, 6);
+  return `${nameSlug}_${titleSlug}_${random}`;
+}
+
+function calculatePeriodStart(period) {
+  const now = new Date();
+  switch (period) {
+    case "day":
+      return new Date(now.setHours(0, 0, 0, 0));
+    case "week":
+      const day = now.getDay();
+      return new Date(now.setDate(now.getDate() - day));
+    case "month":
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case "year":
+      return new Date(now.getFullYear(), 0, 1);
+    default:
+      return new Date(0);
+  }
+}
+
+// ============================================
+// Routes
+// ============================================
 
 // POST /api/benefits/create - Create new benefit (Business only)
 router.post(
@@ -57,11 +104,10 @@ router.post(
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
-
-      // Get business
+      console.log("for that user:", { ownerId: req.user._id });
       const business = await Business.findOne({ ownerId: req.user._id });
       if (!business) {
-        return res.status(404).json({ error: "עסק לא נמצא sdsdfgd" });
+        return res.status(404).json({ error: "עסק לא נמצא" });
       }
 
       const {
@@ -99,7 +145,7 @@ router.post(
   }
 );
 
-// GET /api/benefits/business/:businessId - Get all benefits for a business (Public)
+// GET /api/benefits/business/:businessId
 router.get("/business/:businessId", async (req, res) => {
   try {
     const benefits = await Benefit.find({
@@ -119,12 +165,12 @@ router.get("/business/:businessId", async (req, res) => {
   }
 });
 
-// GET /api/benefits/my-benefits - Get all benefits for logged in business
+// GET /api/benefits/my-benefits
 router.get("/my-benefits", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא dsdsdfgg" });
+      return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
     const benefits = await Benefit.find({
@@ -142,12 +188,12 @@ router.get("/my-benefits", authenticate, isBusiness, async (req, res) => {
   }
 });
 
-// PUT /api/benefits/:benefitId - Update benefit
+// PUT /api/benefits/:benefitId
 router.put("/:benefitId", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא blblbl" });
+      return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
     const benefit = await Benefit.findOne({
@@ -177,7 +223,6 @@ router.put("/:benefitId", authenticate, isBusiness, async (req, res) => {
     });
 
     await benefit.save();
-
     res.json({ success: true, benefit });
   } catch (error) {
     console.error("Update benefit error:", error);
@@ -185,12 +230,12 @@ router.put("/:benefitId", authenticate, isBusiness, async (req, res) => {
   }
 });
 
-// DELETE /api/benefits/:benefitId - Delete benefit
+// DELETE /api/benefits/:benefitId
 router.delete("/:benefitId", authenticate, isBusiness, async (req, res) => {
   try {
     const business = await Business.findOne({ ownerId: req.user._id });
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא dssdsd" });
+      return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
     const benefit = await Benefit.findOneAndDelete({
@@ -214,23 +259,29 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
   try {
     const { benefitId, distributorId } = req.body;
 
-    // Get benefit
+    console.log("🔍 === REDEEM BENEFIT START ===");
+    console.log("📦 Request body:", req.body);
+    console.log("👤 Customer:", req.user.name, req.user._id);
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: "משתמש לא מזוהה" });
+    }
+
     const benefit = await Benefit.findOne({ benefitId });
     if (!benefit) {
       return res.status(404).json({ error: "הטבה לא נמצאה" });
     }
 
-    // Check if benefit is active
+    console.log("✅ Benefit found:", benefit.title);
+
     if (!benefit.isActive) {
       return res.status(400).json({ error: "הטבה לא פעילה" });
     }
 
-    // Check if expired
     if (new Date() > benefit.validUntil) {
       return res.status(400).json({ error: "הטבה פגת תוקף" });
     }
 
-    // Check total usage limit
     if (
       benefit.maxUsage?.total &&
       benefit.usageCount >= benefit.maxUsage.total
@@ -240,9 +291,12 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
         .json({ error: "הטבה מלאה - הגיעה למגבלת השימושים" });
     }
 
-    // Check per-customer limit
+    const customerId = mongoose.Types.ObjectId.isValid(req.user._id)
+      ? req.user._id
+      : new mongoose.Types.ObjectId(req.user._id);
+
     const customerUsage = await CustomerBenefit.countDocuments({
-      customerId: req.user._id,
+      customerId: customerId,
       benefitId: benefit.benefitId,
       status: "redeemed",
     });
@@ -256,13 +310,12 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       });
     }
 
-    // Check per-period limit
     if (benefit.maxUsage?.perPeriod) {
       const periodStart = calculatePeriodStart(
         benefit.maxUsage.perPeriod.period
       );
       const periodUsage = await CustomerBenefit.countDocuments({
-        customerId: req.user._id,
+        customerId: customerId,
         benefitId: benefit.benefitId,
         status: "redeemed",
         redeemedAt: { $gte: periodStart },
@@ -275,27 +328,35 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       }
     }
 
-    // Generate user-friendly code
-    const displayCode = generateDisplayCode(req.user.name, benefit.title);
+    const userName = req.user.name || req.user.email || "user";
+    const displayCode = generateDisplayCode(userName, benefit.title);
 
-    // Encrypt QR data
+    console.log("🔐 Encrypting QR data...");
     const qrPayload = JSON.stringify({
       businessId: benefit.businessId,
       benefitId: benefit.benefitId,
-      customerId: req.user._id.toString(),
+      customerId: customerId.toString(),
       timestamp: Date.now(),
     });
-    const qrData = encrypt(qrPayload);
 
-    // Create customer benefit
+    const qrData = encrypt(qrPayload);
+    console.log("✅ QR data encrypted successfully");
+
+    console.log("💾 Creating CustomerBenefit...");
     const customerBenefit = await CustomerBenefit.create({
-      customerId: req.user._id,
+      customerId: customerId,
       businessId: benefit.businessId,
       benefitId: benefit.benefitId,
       displayCode,
       qrData,
       expiresAt: benefit.validUntil,
     });
+
+    console.log(
+      "✅ CustomerBenefit created:",
+      customerBenefit.customerBenefitCode
+    );
+    console.log("🔍 === REDEEM BENEFIT END ===");
 
     res.status(201).json({
       success: true,
@@ -309,17 +370,32 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Redeem benefit error:", error);
-    res.status(500).json({ error: "שגיאה ביצירת קוד" });
+    console.error("❌ REDEEM ERROR:", error.name, "-", error.message);
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        error: "שגיאת ולידציה",
+        details: error.message,
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({ error: "קוד כבר קיים במערכת" });
+    }
+
+    res.status(500).json({
+      error: "שגיאה ביצירת קוד",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
-// POST /api/benefits/validate - Validate and use benefit (Staff scans QR)
+// POST /api/benefits/validate
 router.post("/validate", authenticate, isBusiness, async (req, res) => {
   try {
     const { qrData } = req.body;
 
-    // Decrypt QR data
     let payload;
     try {
       const decryptedData = decrypt(qrData);
@@ -330,13 +406,11 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
 
     const { businessId, benefitId, customerId } = payload;
 
-    // Get staff's business
     const staffBusiness = await Business.findOne({ ownerId: req.user._id });
     if (!staffBusiness) {
       return res.status(403).json({ error: "עובד לא משוייך לעסק" });
     }
 
-    // Verify QR belongs to this business
     if (businessId !== staffBusiness.businessId) {
       await RedemptionLog.create({
         customerBenefitCode: "INVALID",
@@ -353,7 +427,6 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
       });
     }
 
-    // Get customer benefit
     const customerBenefit = await CustomerBenefit.findOne({
       customerId,
       benefitId,
@@ -364,7 +437,6 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
       return res.status(404).json({ error: "קוד לא נמצא במערכת" });
     }
 
-    // Check if already redeemed
     if (customerBenefit.status === "redeemed") {
       return res.status(400).json({
         error: "הטבה זו כבר מומשה",
@@ -372,30 +444,25 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
       });
     }
 
-    // Check if expired
     if (customerBenefit.isExpired()) {
       customerBenefit.status = "expired";
       await customerBenefit.save();
       return res.status(400).json({ error: "הקוד פג תוקף" });
     }
 
-    // Get benefit details
     const benefit = await Benefit.findOne({ benefitId });
     if (!benefit) {
       return res.status(404).json({ error: "הטבה לא נמצאה" });
     }
 
-    // All checks passed - Mark as redeemed
     customerBenefit.status = "redeemed";
     customerBenefit.redeemedAt = new Date();
     customerBenefit.redeemedBy = req.user._id;
     await customerBenefit.save();
 
-    // Update benefit usage count
     benefit.usageCount += 1;
     await benefit.save();
 
-    // Log redemption
     await RedemptionLog.create({
       customerBenefitCode: customerBenefit.customerBenefitCode,
       customerId,
@@ -424,53 +491,39 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
   }
 });
 
-// GET /api/benefits/my-codes - Get customer's benefit codes
 router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
   try {
     const codes = await CustomerBenefit.find({
       customerId: req.user._id,
-    })
-      .sort({ createdAt: -1 })
-      .populate("benefitId")
-      .populate("businessId");
+    }).sort({ createdAt: -1 });
+
+    // Manually fetch related benefits and businesses
+    const enrichedCodes = await Promise.all(
+      codes.map(async (code) => {
+        const benefit = await Benefit.findOne({
+          benefitId: code.benefitId,
+        });
+        const business = await Business.findOne({
+          businessId: code.businessId,
+        });
+
+        return {
+          ...code.toObject(),
+          benefit,
+          business,
+        };
+      })
+    );
 
     res.json({
       success: true,
-      count: codes.length,
-      codes,
+      count: enrichedCodes.length,
+      codes: enrichedCodes,
     });
   } catch (error) {
     console.error("Get codes error:", error);
     res.status(500).json({ error: "שגיאה בטעינת קודים" });
   }
 });
-
-// Helper functions
-function generateDisplayCode(userName, benefitTitle) {
-  const nameSlug = userName.toLowerCase().replace(/\s+/g, "_").substring(0, 10);
-  const titleSlug = benefitTitle
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .substring(0, 10);
-  const random = Math.random().toString(36).substring(2, 6);
-  return `${nameSlug}_${titleSlug}_${random}`;
-}
-
-function calculatePeriodStart(period) {
-  const now = new Date();
-  switch (period) {
-    case "day":
-      return new Date(now.setHours(0, 0, 0, 0));
-    case "week":
-      const day = now.getDay();
-      return new Date(now.setDate(now.getDate() - day));
-    case "month":
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    case "year":
-      return new Date(now.getFullYear(), 0, 1);
-    default:
-      return new Date(0);
-  }
-}
 
 module.exports = router;

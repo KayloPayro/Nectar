@@ -252,11 +252,11 @@ export default function BusinessScreen() {
         setBottomSheetVisible(false);
         setSuccessModalVisible(true);
       } else {
-        alert(result.error || "שגיאה ביצירת קוד");
+        alert(result.error || "שdsdsdגיאה ביצירת קוד");
       }
     } catch (error) {
       console.error("❌ Redeem error:", error);
-      alert("שגיאה ביצירת קוד");
+      alert("שגיאה ביצירת קודsdsdaad");
     }
   };
 

@@ -1,11 +1,6 @@
 const mongoose = require("mongoose");
 
 const businessSchema = new mongoose.Schema({
-  businessId: {
-    type: String,
-    unique: true,
-    sparse: true, // ✅ הוספנו sparse במקום required
-  },
   ownerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
