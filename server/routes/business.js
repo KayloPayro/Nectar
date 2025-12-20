@@ -177,12 +177,23 @@ router.get("/my-business", authenticate, isBusiness, async (req, res) => {
 });
 
 // GET /api/business/:businessId - Get business by ID (public)
-router.get("/:businessId", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const business = await Business.findById(req.params.businessId);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "ID לא חוקי" });
+    }
+
+
+    let business = await Business.findById(id);
 
     if (!business) {
-      return res.status(404).json({ error: "עסק לא נמצא /:businessId" });
+      business = await Business.findOne({ ownerId: id });
+    }
+
+    if (!business) {
+      return res.status(404).json({ error: "עסק לא נמצא" });
     }
 
     res.json({ success: true, business });
