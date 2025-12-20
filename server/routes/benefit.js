@@ -527,5 +527,70 @@ router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
     res.status(500).json({ error: "שגיאה בטעינת קודים" });
   }
 });
+router.get(
+  "/get-by-display-code/:displayCode",
+  authenticate,
+  isCustomer,
+  async (req, res) => {
+    try {
+      const { displayCode } = req.params;
+
+      console.log("🔍 Looking for displayCode:", displayCode);
+
+      const customerBenefit = await CustomerBenefit.findOne({
+        displayCode,
+        // customerId: req.user._id, // ✅ ודא שזו ההטבה של המשתמש הנוכחי
+      });
+
+      if (!customerBenefit) {
+        console.log("❌ CustomerBenefit not found");
+        return res.status(404).json({ error: "קוד לא נמצא במערכת" });
+      }
+
+      console.log("✅ CustomerBenefit found:", customerBenefit._id);
+
+      // ✅ טען פרטי הטבה ועסק עם ObjectIds
+      const benefit = await Benefit.findById(customerBenefit.benefitId);
+      const business = await Business.findById(customerBenefit.businessId);
+
+      if (!benefit) {
+        return res.status(404).json({ error: "פרטי ההטבה לא נמצאו" });
+      }
+
+      if (!business) {
+        return res.status(404).json({ error: "פרטי העסק לא נמצאו" });
+      }
+
+      console.log("✅ Full data loaded");
+
+      res.json({
+        success: true,
+        customerBenefit: {
+          _id: customerBenefit._id,
+          displayCode: customerBenefit.displayCode,
+          qrData: customerBenefit.qrData,
+          status: customerBenefit.status,
+          expiresAt: customerBenefit.expiresAt,
+          createdAt: customerBenefit.createdAt,
+        },
+        benefit: {
+          _id: benefit._id,
+          title: benefit.title,
+          description: benefit.description,
+          discount: benefit.discount,
+          validUntil: benefit.validUntil,
+        },
+        business: {
+          _id: business._id,
+          name: business.name,
+          image: business.image,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Get by display code error:", error);
+      res.status(500).json({ error: "שגיאה בטעינת הטבה" });
+    }
+  }
+);
 
 module.exports = router;

@@ -1,8 +1,6 @@
 // services/benefitApiService.ts
 import api from "./api";
 
-
-
 export const BenefitApiService = {
   // Create benefit
   createBenefit: async (benefitData: any) => {
@@ -137,6 +135,25 @@ export const BenefitApiService = {
       return {
         success: false,
         error: error.response?.data?.error || "שגיאה בטעינת קודים",
+      };
+    }
+  },
+  getByDisplayCode: async (displayCode: string) => {
+    try {
+      console.log("📤 Getting benefit by display code:", displayCode);
+      const response = await api.get(
+        `/benefits/get-by-display-code/${displayCode}`
+      );
+      console.log("✅ Benefit found:", response.data);
+      return {
+        success: true,
+        data: response.data, // זה מחזיר { customerBenefit, benefit, business }
+      };
+    } catch (error: any) {
+      console.error("❌ Get by display code error:", error.response?.data);
+      return {
+        success: false,
+        error: error.response?.data?.error || "שגיאה בטעינת הטבה",
       };
     }
   },

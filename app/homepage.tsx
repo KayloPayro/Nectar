@@ -1,8 +1,8 @@
 // app/homepage.tsx
 // app/homepage.tsx
+import { BenefitQRDisplay } from "@/components/home/BenefitQRDisplay";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
-import { useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import Fuse from "fuse.js";
 import React, { useEffect, useState } from "react";
@@ -15,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { AddressSelector } from "../components/home/AddressSelector";
-import { BarcodeScanner } from "../components/home/BarcodeScanner";
 import { CategorySection } from "../components/home/CategorySection";
 import { SearchBar } from "../components/shared/SearchBar";
 import { useBusinessFilters } from "../hooks/useBusinessFilters";
@@ -38,7 +37,7 @@ export default function HomeScreen() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
-  const [barcodeModalVisible, setBarcodeModalVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [addressDropdownVisible, setAddressDropdownVisible] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
@@ -46,8 +45,6 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [permission, requestPermission] = useCameraPermissions();
 
   // Initialize
   useEffect(() => {
@@ -140,24 +137,9 @@ export default function HomeScreen() {
     }
   };
 
-  const handleBarCodeScanned = (data: string) => {
-    setBarcodeModalVisible(false);
-    alert(`ברקוד נסרק: ${data}`);
+  const handleOpenQRDisplay = () => {
+    setQrModalVisible(true);
   };
-
-  const handleOpenCamera = async () => {
-    if (!permission) return;
-
-    if (!permission.granted) {
-      const { granted } = await requestPermission();
-      if (!granted) {
-        alert("אין הרשאה למצלמה");
-        return;
-      }
-    }
-    setBarcodeModalVisible(true);
-  };
-
   const handleCardPress = (item: Business) => {
     // ✅ תיקון: השתמש ב-businessId תמיד
     const id = item._id;
@@ -231,7 +213,7 @@ export default function HomeScreen() {
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        onBarcodePress={handleOpenCamera}
+        onBarcodePress={handleOpenQRDisplay}
       />
 
       {/* Categories */}
@@ -273,13 +255,9 @@ export default function HomeScreen() {
         onCardPress={handleCardPress}
       />
 
-      {/* Barcode Scanner Modal */}
-      <BarcodeScanner
-        visible={barcodeModalVisible}
-        permission={permission}
-        onClose={() => setBarcodeModalVisible(false)}
-        onScan={handleBarCodeScanned}
-        onRequestPermission={requestPermission}
+      <BenefitQRDisplay
+        visible={qrModalVisible}
+        onClose={() => setQrModalVisible(false)}
       />
     </ScrollView>
   );
