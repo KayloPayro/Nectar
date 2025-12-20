@@ -295,8 +295,8 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       : new mongoose.Types.ObjectId(req.user._id);
 
     const customerUsage = await CustomerBenefit.countDocuments({
-      customerId: customerId,
-      benefitId: benefit.benefitId,
+      customerId,
+      benefitId: benefit._id,
       status: "redeemed",
     });
 
@@ -314,8 +314,8 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
         benefit.maxUsage.perPeriod.period
       );
       const periodUsage = await CustomerBenefit.countDocuments({
-        customerId: customerId,
-        benefitId: benefit.benefitId,
+        customerId,
+        benefitId: benefit._id,
         status: "redeemed",
         redeemedAt: { $gte: periodStart },
       });
@@ -333,7 +333,7 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     console.log("🔐 Encrypting QR data...");
     const qrPayload = JSON.stringify({
       businessId: benefit.businessId,
-      benefitId: benefit.benefitId,
+      benefitId: benefit._id,
       customerId: customerId.toString(),
       timestamp: Date.now(),
     });

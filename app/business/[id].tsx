@@ -239,11 +239,14 @@ export default function BusinessScreen() {
     }
 
     try {
-      console.log("📤 Redeeming benefit:", selectedBenefit.benefitId);
+      console.log("📤 Redeeming benefit:", selectedBenefit._id);
 
-      const result = await BenefitApiService.redeemBenefit(
-        selectedBenefit.benefitId
-      );
+      if (!selectedBenefit._id) {
+        alert("שגיאה: לא ניתן לאתר את ההטבה");
+        return;
+      }
+
+      const result = await BenefitApiService.redeemBenefit(selectedBenefit._id);
 
       if (result.success) {
         console.log("✅ Benefit redeemed successfully!");
