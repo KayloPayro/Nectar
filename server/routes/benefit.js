@@ -296,7 +296,7 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
 
     const customerUsage = await CustomerBenefit.countDocuments({
       customerId,
-      benefitId: benefit._id,
+      benefitId: benefit._id, // ✅ שימוש ב-ObjectId האמיתי
       status: "redeemed",
     });
 
@@ -315,7 +315,7 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       );
       const periodUsage = await CustomerBenefit.countDocuments({
         customerId,
-        benefitId: benefit._id,
+        benefitId: benefit._id, // ✅ שימוש ב-ObjectId האמיתי
         status: "redeemed",
         redeemedAt: { $gte: periodStart },
       });
@@ -331,9 +331,10 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     const displayCode = generateDisplayCode(userName, benefit.title);
 
     console.log("🔐 Encrypting QR data...");
+    // ✅ שמור ObjectId אמיתי ב-QR
     const qrPayload = JSON.stringify({
-      businessId: benefit.businessId,
-      benefitId: benefit._id,
+      businessId: benefit.businessId.toString(), // ✅ המרה למחרוזת
+      benefitId: benefit._id.toString(), // ✅ המרה למחרוזת
       customerId: customerId.toString(),
       timestamp: Date.now(),
     });
@@ -342,10 +343,11 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     console.log("✅ QR data encrypted successfully");
 
     console.log("💾 Creating CustomerBenefit...");
+    // ✅ שמור ObjectId אמיתי במסמך
     const customerBenefit = await CustomerBenefit.create({
       customerId: customerId,
-      businessId: benefit.businessId, // ✅ ObjectId
-      benefitId: benefit._id, // ✅ ObjectId
+      businessId: benefit.businessId, // ✅ ObjectId אמיתי
+      benefitId: benefit._id, // ✅ ObjectId אמיתי
       displayCode,
       qrData,
       expiresAt: benefit.validUntil,
@@ -539,8 +541,7 @@ router.get(
 
       const customerBenefit = await CustomerBenefit.findOne({
         displayCode,
-        // customerId: req.user._id, // ✅ ודא שזו ההטבה של המשתמש הנוכחי
-      });
+      }).lean();
 
       if (!customerBenefit) {
         console.log("❌ CustomerBenefit not found");
@@ -549,15 +550,23 @@ router.get(
 
       console.log("✅ CustomerBenefit found:", customerBenefit._id);
 
-      // ✅ טען פרטי הטבה ועסק עם ObjectIds
+      // ✅ טעינה ישירה לפי ObjectId
       const benefit = await Benefit.findById(customerBenefit.benefitId);
       const business = await Business.findById(customerBenefit.businessId);
 
       if (!benefit) {
+        console.error(
+          "❌ Benefit not found for benefitId:",
+          customerBenefit.benefitId
+        );
         return res.status(404).json({ error: "פרטי ההטבה לא נמצאו" });
       }
 
       if (!business) {
+        console.error(
+          "❌ Business not found for businessId:",
+          customerBenefit.businessId
+        );
         return res.status(404).json({ error: "פרטי העסק לא נמצאו" });
       }
 
