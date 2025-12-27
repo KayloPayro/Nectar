@@ -73,10 +73,9 @@ export default function BusinessDashboard() {
     }
   };
 
-  // שימוש ב-OnRefresh:
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadData(true); // שולח flag שזה רפרש
+    await loadData(true);
     setRefreshing(false);
   }, []);
 
@@ -106,20 +105,14 @@ export default function BusinessDashboard() {
     router.push("/benefit-create" as any);
   };
 
-  const handleToggleBenefitstatus = async (benefit: Benefit) => {
-    // const result = await BusinessService.updatebenefit(benefit.id, {
-    //   isActive: !benefit.isActive,
-    // });
-    // if (result.success) {
-    //   setBenefits((prev) =>
-    //     prev.map((o) =>
-    //       o.id === benefit.id ? { ...o, isActive: !o.isActive } : o
-    //     )
-    //   );
-    // } else {
-    //   Alert.alert("שגיאה", result.error);
-    // }
+  const handleScanQR = () => {
+    router.push("/qr-scanner" as any);
   };
+
+  const handleToggleBenefitstatus = async (benefit: Benefit) => {
+    // Implementation here
+  };
+
   const handleDeletebenefit = (benefitId: string) => {
     Alert.alert("מחיקת הטבה", "האם אתה בטוח?", [
       { text: "ביטול", style: "cancel" },
@@ -128,6 +121,7 @@ export default function BusinessDashboard() {
         style: "destructive",
         onPress: async () => {
           await BenefitApiService.deleteBenefit(benefitId);
+          onRefresh();
         },
       },
     ]);
@@ -197,6 +191,26 @@ export default function BusinessDashboard() {
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
+        </TouchableOpacity>
+      </View>
+
+      {/* 🎯 כפתור סריקת QR - בולט ומרכזי */}
+      <View style={styles.scanButtonContainer}>
+        <TouchableOpacity
+          style={styles.scanButton}
+          onPress={handleScanQR}
+          activeOpacity={0.8}
+        >
+          <View style={styles.scanButtonIconContainer}>
+            <Ionicons name="qr-code" size={48} color={COLORS.deepPurple} />
+          </View>
+          <View style={styles.scanButtonTextContainer}>
+            <Text style={styles.scanButtonTitle}>סרוק קוד הטבה</Text>
+            <Text style={styles.scanButtonSubtitle}>
+              אמת ומשוך קודים מלקוחות 📱
+            </Text>
+          </View>
+          <Ionicons name="chevron-back" size={28} color={COLORS.deepPurple} />
         </TouchableOpacity>
       </View>
 
@@ -423,6 +437,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     color: COLORS.deepPurple,
+  },
+  // 🎯 כפתור סריקה
+  scanButtonContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  scanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.honeyGold,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 8,
+    shadowColor: COLORS.honeyGold,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.cream,
+  },
+  scanButtonIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.cream,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 16,
+  },
+  scanButtonTextContainer: {
+    flex: 1,
+  },
+  scanButtonTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.deepPurple,
+    marginBottom: 4,
+    textAlign: "right",
+  },
+  scanButtonSubtitle: {
+    fontSize: 14,
+    color: COLORS.plum,
+    fontWeight: "600",
+    textAlign: "right",
   },
   statsContainer: {
     flexDirection: "row",
