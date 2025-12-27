@@ -122,7 +122,7 @@ router.post(
       } = req.body;
 
       const benefit = await Benefit.create({
-        businessId: business._id, // ✅ ObjectId במקום string
+        businessId: business._id,
         title,
         description,
         discount,
@@ -149,7 +149,7 @@ router.post(
 router.get("/business/:businessId", async (req, res) => {
   try {
     const benefits = await Benefit.find({
-      businessId: req.params.businessId, // ✅ זה ObjectId
+      businessId: req.params.businessId,
       isActive: true,
       validUntil: { $gte: new Date() },
     }).sort({ createdAt: -1 });
@@ -246,6 +246,7 @@ router.delete("/:benefitId", authenticate, isBusiness, async (req, res) => {
       return res.status(404).json({ error: "הטבה לא נמצאה" });
     }
 
+    await benefit.deleteOne();
     res.json({ success: true, message: "הטבה נמחקה בהצלחה" });
   } catch (error) {
     console.error("Delete benefit error:", error);
@@ -294,9 +295,25 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       ? req.user._id
       : new mongoose.Types.ObjectId(req.user._id);
 
+    // ✅ בדוק אם כבר יש קוד פעיל להטבה הזו
+    const existingActiveCode = await CustomerBenefit.findOne({
+      customerId,
+      benefitId: benefit._id,
+      status: "active",
+    });
+
+    if (existingActiveCode) {
+      console.log("⚠️ User already has active code for this benefit");
+      return res.status(400).json({
+        error: "כבר קיים קוד פעיל להטבה זו",
+        displayCode: existingActiveCode.displayCode,
+      });
+    }
+
+    // בדוק מגבלות שימוש כוללות
     const customerUsage = await CustomerBenefit.countDocuments({
       customerId,
-      benefitId: benefit._id, // ✅ שימוש ב-ObjectId האמיתי
+      benefitId: benefit._id,
       status: "redeemed",
     });
 
@@ -315,7 +332,7 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
       );
       const periodUsage = await CustomerBenefit.countDocuments({
         customerId,
-        benefitId: benefit._id, // ✅ שימוש ב-ObjectId האמיתי
+        benefitId: benefit._id,
         status: "redeemed",
         redeemedAt: { $gte: periodStart },
       });
@@ -331,10 +348,9 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     const displayCode = generateDisplayCode(userName, benefit.title);
 
     console.log("🔐 Encrypting QR data...");
-    // ✅ שמור ObjectId אמיתי ב-QR
     const qrPayload = JSON.stringify({
-      businessId: benefit.businessId.toString(), // ✅ המרה למחרוזת
-      benefitId: benefit._id.toString(), // ✅ המרה למחרוזת
+      businessId: benefit.businessId.toString(),
+      benefitId: benefit._id.toString(),
       customerId: customerId.toString(),
       timestamp: Date.now(),
     });
@@ -343,11 +359,10 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     console.log("✅ QR data encrypted successfully");
 
     console.log("💾 Creating CustomerBenefit...");
-    // ✅ שמור ObjectId אמיתי במסמך
     const customerBenefit = await CustomerBenefit.create({
       customerId: customerId,
-      businessId: benefit.businessId, // ✅ ObjectId אמיתי
-      benefitId: benefit._id, // ✅ ObjectId אמיתי
+      businessId: benefit.businessId,
+      benefitId: benefit._id,
       displayCode,
       qrData,
       expiresAt: benefit.validUntil,
@@ -381,7 +396,10 @@ router.post("/redeem", authenticate, isCustomer, async (req, res) => {
     }
 
     if (error.code === 11000) {
-      return res.status(400).json({ error: "קוד כבר קיים במערכת" });
+      return res.status(400).json({
+        error:
+          "כבר קיים קוד פעיל להטבה זו. אנא השתמש בקוד הקיים או חכה שיפוג תוקפו.",
+      });
     }
 
     res.status(500).json({
@@ -412,7 +430,7 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
       return res.status(403).json({ error: "עובד לא משוייך לעסק" });
     }
 
-    if (businessId !== staffBusiness.businessId) {
+    if (businessId !== staffBusiness._id.toString()) {
       await RedemptionLog.create({
         customerBenefitCode: "INVALID",
         customerId,
@@ -429,9 +447,9 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
     }
 
     const customerBenefit = await CustomerBenefit.findOne({
-      customerId: mongoose.Types.ObjectId(customerId),
-      benefitId: mongoose.Types.ObjectId(benefitId),
-      businessId: mongoose.Types.ObjectId(businessId),
+      customerId: new mongoose.Types.ObjectId(customerId),
+      benefitId: new mongoose.Types.ObjectId(benefitId),
+      businessId: new mongoose.Types.ObjectId(businessId),
     });
 
     if (!customerBenefit) {
@@ -451,7 +469,7 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
       return res.status(400).json({ error: "הקוד פג תוקף" });
     }
 
-    const benefit = await Benefit.findOne({ benefitId });
+    const benefit = await Benefit.findById(benefitId);
     if (!benefit) {
       return res.status(404).json({ error: "הטבה לא נמצאה" });
     }
@@ -492,6 +510,7 @@ router.post("/validate", authenticate, isBusiness, async (req, res) => {
   }
 });
 
+// GET /api/benefits/my-codes
 router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
   try {
     const codes = await CustomerBenefit.find({
@@ -501,34 +520,18 @@ router.get("/my-codes", authenticate, isCustomer, async (req, res) => {
       .populate("benefitId")
       .populate("businessId");
 
-    // Manually fetch related benefits and businesses
-    const enrichedCodes = await Promise.all(
-      codes.map(async (code) => {
-        const benefit = await Benefit.findOne({
-          benefitId: code.benefitId,
-        });
-        const business = await Business.findOne({
-          businessId: code.businessId,
-        });
-
-        return {
-          ...code.toObject(),
-          benefit,
-          business,
-        };
-      })
-    );
-
     res.json({
       success: true,
       count: codes.length,
-      codes, // ✅ עכשיו יש benefit ו-business מלאים!
+      codes,
     });
   } catch (error) {
     console.error("Get codes error:", error);
     res.status(500).json({ error: "שגיאה בטעינת קודים" });
   }
 });
+
+// GET /api/benefits/get-by-display-code/:displayCode - ✅ ה-ROUTE החסר!
 router.get(
   "/get-by-display-code/:displayCode",
   authenticate,
@@ -550,7 +553,7 @@ router.get(
 
       console.log("✅ CustomerBenefit found:", customerBenefit._id);
 
-      // ✅ טעינה ישירה לפי ObjectId
+      // טעינה ישירה לפי ObjectId
       const benefit = await Benefit.findById(customerBenefit.benefitId);
       const business = await Business.findById(customerBenefit.businessId);
 
