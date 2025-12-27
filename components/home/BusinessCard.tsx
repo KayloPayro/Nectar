@@ -1,4 +1,5 @@
 // components/home/BusinessCard.tsx
+import { COLORS } from "@/colors/colors";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import {
@@ -10,19 +11,6 @@ import {
   View,
 } from "react-native";
 import { Business } from "../../types/business";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  sage: "#A8DADC",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  midnight: "#1A1423",
-  cream: "#FFF8E8",
-  dustyRose: "#D4A5A5",
-};
 
 interface BusinessCardProps {
   item: Business;

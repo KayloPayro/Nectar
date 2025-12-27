@@ -1,4 +1,5 @@
 // components/home/CategorySection.tsx
+import { COLORS } from "@/colors/colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -10,12 +11,6 @@ import {
 } from "react-native";
 import { Business } from "../../types/business";
 import { BusinessCard } from "./BusinessCard";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  cream: "#FFF8E8",
-};
 
 interface CategorySectionProps {
   title: string;
@@ -39,8 +34,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const renderCard = ({ item }: { item: Business }) => (
     <BusinessCard
       item={item}
-      isFavorite={favorites.includes(item.businessId || item.id || '')}
-      onToggleFavorite={() => onToggleFavorite(item.businessId || item.id || '')}
+      isFavorite={favorites.includes(item.businessId || item.id || "")}
+      onToggleFavorite={() =>
+        onToggleFavorite(item.businessId || item.id || "")
+      }
       onPress={() => onCardPress(item)}
     />
   );
@@ -58,7 +55,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
       </View>
       <FlatList
         data={data}
-        keyExtractor={(item) => item.businessId || item.id || item._id || Math.random().toString()} // ✅ תיקון key
+        keyExtractor={(item) =>
+          item.businessId || item.id || item._id || Math.random().toString()
+        } // ✅ תיקון key
         renderItem={renderCard}
         horizontal
         inverted

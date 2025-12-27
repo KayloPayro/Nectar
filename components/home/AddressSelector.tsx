@@ -1,19 +1,9 @@
 // components/home/AddressSelector.tsx
+import { COLORS } from "@/colors/colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Address } from "../../services/authService";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  midnight: "#1A1423",
-  cream: "#FFF8E8",
-  dustyRose: "#D4A5A5",
-};
 
 interface AddressSelectorProps {
   selectedAddress: Address | null;

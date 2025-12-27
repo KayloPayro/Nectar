@@ -18,17 +18,7 @@ import {
 } from "react-native";
 import { AuthService } from "../services/authService";
 
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  cream: "#FFF8E8",
-  dustyRose: "#D4A5A5",
-  error: "#E07A7A",
-};
+import { COLORS } from "@/colors/colors";
 
 const CATEGORIES = [
   "מסעדה",

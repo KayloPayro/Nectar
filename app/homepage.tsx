@@ -1,5 +1,6 @@
 // app/homepage.tsx
 // app/homepage.tsx
+import { COLORS } from "@/colors/colors";
 import { BenefitQRDisplay } from "@/components/home/BenefitQRDisplay";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,15 +21,6 @@ import { SearchBar } from "../components/shared/SearchBar";
 import { useBusinessFilters } from "../hooks/useBusinessFilters";
 import { Address, AuthService, User, UserData } from "../services/authService";
 import { Business } from "../types/business";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  cream: "#FFF8E8",
-  error: "#E07A7A",
-};
 
 export default function HomeScreen() {
   const router = useRouter();

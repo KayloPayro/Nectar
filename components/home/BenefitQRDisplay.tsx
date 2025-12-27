@@ -1,4 +1,5 @@
 // components/customer/BenefitQRDisplay.tsx
+import { COLORS } from "@/colors/colors";
 import { BenefitApiService } from "@/services/benefitApiService";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -12,21 +13,6 @@ import {
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  midnight: "#1A1423",
-  cream: "#FFF8E8",
-  softWhite: "#F5F1E3",
-  error: "#E07A7A",
-  success: "#66C9B5",
-  dustyRose: "#D4A5A5", // ✅ הוסף כאן
-};
 
 interface BenefitQRDisplayProps {
   visible: boolean;

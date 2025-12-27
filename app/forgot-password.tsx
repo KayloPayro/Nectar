@@ -15,17 +15,7 @@ import {
 } from "react-native";
 import { AuthService, validateEmail } from "../services/authService";
 
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  cream: "#FFF8E8",
-  softWhite: "#F5F1E3",
-  dustyRose: "#D4A5A5",
-  error: "#E07A7A",
-  success: "#66C9B5",
-};
+import { COLORS } from "@/colors/colors";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();

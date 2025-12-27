@@ -19,18 +19,9 @@ import {
   validateEmail,
   validatePassword,
 } from "../services/authService";
+import { COLORS } from "@/colors/colors";
 
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  cream: "#FFF8E8",
-  softWhite: "#F5F1E3",
-  dustyRose: "#D4A5A5",
-  error: "#E07A7A",
-  mint: "#81C6B5",
-};
+
 
 export default function SignupScreen() {
   const router = useRouter();

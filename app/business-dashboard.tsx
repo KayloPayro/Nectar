@@ -1,4 +1,5 @@
 // app/business-dashboard.tsx
+import { COLORS } from "@/colors/colors";
 import { Benefit } from "@/types/benefit";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -18,18 +19,6 @@ import { AuthService, User } from "../services/authService";
 import { BenefitApiService } from "../services/benefitApiService";
 import { BusinessApiService } from "../services/businessApiService";
 import { BusinessProfile } from "../services/businessService";
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  midnight: "#1A1423",
-  cream: "#FFF8E8",
-  dustyRose: "#D4A5A5",
-  error: "#E07A7A",
-};
 
 export default function BusinessDashboard() {
   const router = useRouter();

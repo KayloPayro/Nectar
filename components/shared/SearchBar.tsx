@@ -1,16 +1,8 @@
 // components/shared/SearchBar.tsx
+import { COLORS } from "@/colors/colors";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
-
-const COLORS = {
-  honeyGold: "#F4A259",
-  lavenderBlush: "#E0BBE4",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  cream: "#FFF8E8",
-  dustyRose: "#D4A5A5",
-};
 
 interface SearchBarProps {
   value: string;

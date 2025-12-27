@@ -1,3 +1,4 @@
+import { COLORS } from "@/colors/colors";
 import { BenefitApiService } from "@/services/benefitApiService";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Benefit } from "@/types/benefit";
@@ -26,23 +27,6 @@ const { width, height } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 300;
 const HEADER_MIN_HEIGHT = 80;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-
-// Nectar Colors
-const COLORS = {
-  honeyGold: "#F4A259",
-  amber: "#F2CC8F",
-  lavenderBlush: "#E0BBE4",
-  mint: "#81C6B5",
-  sage: "#A8DADC",
-  deepPurple: "#2D1B3D",
-  plum: "#422C50",
-  midnight: "#1A1423",
-  cream: "#FFF8E8",
-  softWhite: "#F5F1E3",
-  dustyRose: "#D4A5A5",
-  success: "#66C9B5",
-  error: "#E07A7A",
-};
 
 interface Business {
   businessId: string;
