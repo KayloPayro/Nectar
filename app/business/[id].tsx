@@ -682,6 +682,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    zIndex: 20, // הבטחה שהכפתורים יהיו לחיצים ומעל התמונה
   },
   actionButton: {
     width: 44,

@@ -4,10 +4,12 @@ import { COLORS } from "@/colors/colors";
 import { BenefitQRDisplay } from "@/components/home/BenefitQRDisplay";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import Fuse from "fuse.js";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -166,9 +168,44 @@ export default function HomeScreen() {
     loadBusinesses();
   };
 
-  const handleAddNewAddress = () => {
+  const handleAddNewAddress = async () => {
     setAddressDropdownVisible(false);
-    alert("פתיחת מסך הוספת כתובת חדשה - בפיתוח");
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("שגיאה", "נדרשת הרשאת מיקום כדי להוסיף את המיקום הנוכחי");
+        return;
+      }
+
+      setLoading(true);
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      const reverseGeocoded = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (reverseGeocoded.length > 0) {
+        const addr = reverseGeocoded[0];
+        const newAddress: Address = {
+          id: Date.now().toString(),
+          label: "המיקום שלי",
+          street: addr.street || "רחוב לא ידוע",
+          city: addr.city || addr.subregion || "עיר לא ידועה",
+          coordinates: { lat: latitude, lng: longitude },
+        };
+
+        setSavedAddresses((prev) => [...prev, newAddress]);
+        handleSelectAddress(newAddress);
+      }
+    } catch (error) {
+      console.error("Location error:", error);
+      Alert.alert("שגיאה", "לא ניתן לאתר את המיקום הנוכחי");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -304,7 +341,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 10,
-    zIndex: 10,
+    zIndex: 100, // העלאת ה-zIndex של ההדר הראשי
   },
   headerRow: {
     flexDirection: "row",

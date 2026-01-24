@@ -3,6 +3,7 @@ import { COLORS } from "@/colors/colors";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker"; // ייבוא הספרייה החדשה
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -98,14 +99,41 @@ export default function BusinessProfileSetup() {
       .map((t) => t.trim())
       .filter((t) => t !== "");
 
+    let finalCoordinates = { lat: 32.0656, lng: 34.7748 };
+    let finalCity = "תל אביב";
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const geocoded = await Location.geocodeAsync(address);
+        if (geocoded.length > 0) {
+          finalCoordinates = {
+            lat: geocoded[0].latitude,
+            lng: geocoded[0].longitude,
+          };
+
+          const reverse = await Location.reverseGeocodeAsync({
+            latitude: finalCoordinates.lat,
+            longitude: finalCoordinates.lng,
+          });
+
+          if (reverse.length > 0) {
+            finalCity = reverse[0].city || reverse[0].subregion || finalCity;
+          }
+        }
+      }
+    } catch (error) {
+      console.log("Geocoding error:", error);
+    }
+
     const businessData = {
       name,
       description,
       category,
       address: {
-        street: address, // משתמש בכתובת שהוזנה בטופס
-        city: "תל אביב", // כאן תוכל להוסיף לוגיקה לפיצול עיר/רחוב
-        coordinates: { lat: 32.0656, lng: 34.7748 },
+        street: address,
+        city: finalCity,
+        coordinates: finalCoordinates,
       },
       phone,
       email: email || user.email,

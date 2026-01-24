@@ -177,6 +177,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    zIndex: 20, // הוספת zIndex כדי שיהיה מעל התמונה
   },
   ratingText: {
     fontSize: 13,
@@ -195,6 +196,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
+    zIndex: 20, // הוספת zIndex כדי שיהיה מעל התמונה
+    elevation: 5,
   },
   contentContainer: {
     padding: 16,
