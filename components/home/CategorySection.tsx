@@ -49,8 +49,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           <Text style={styles.categoryTitle}>{title}</Text>
           <Ionicons name={icon as any} size={24} color={COLORS.honeyGold} />
         </View>
-        <TouchableOpacity>
-          <Text style={styles.seeAllText}>הכל ←</Text>
+        <TouchableOpacity style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>הצג הכל</Text>
+          <Ionicons name="arrow-back" size={16} color={COLORS.amber} />
         </TouchableOpacity>
       </View>
       <FlatList
@@ -63,8 +64,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         inverted
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          flexDirection: "row-reverse",
-          paddingHorizontal: 16,
+          paddingHorizontal: 20,
+          gap: 16,
         }}
       />
     </View>
@@ -73,28 +74,37 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
 const styles = StyleSheet.create({
   categoryContainer: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   categoryHeader: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 14,
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
   categoryTitleRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   categoryTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
     color: COLORS.cream,
+  },
+  seeAllButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.plum + "99",
   },
   seeAllText: {
     fontSize: 14,
     color: COLORS.amber,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

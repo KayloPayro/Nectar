@@ -38,7 +38,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.95,
+      toValue: 0.96,
       useNativeDriver: true,
     }).start();
   };
@@ -46,7 +46,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      friction: 3,
+      friction: 4,
       tension: 40,
       useNativeDriver: true,
     }).start();
@@ -74,47 +74,55 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
         style={styles.card}
         onPress={onPress}
       >
-        <Image source={{ uri: item.image }} style={styles.image} />
-        <View style={styles.imageOverlay} />
+        {/* Image Section */}
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.image }} style={styles.image} />
+          <View style={styles.imageOverlay} />
 
-        <View style={styles.textContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name}>{item.name}</Text>
-            <TouchableOpacity onPress={onToggleFavorite}>
-              <Ionicons
-                name={isFavorite ? "star" : "star-outline"}
-                size={24}
-                color={isFavorite ? COLORS.honeyGold : COLORS.dustyRose}
-              />
-            </TouchableOpacity>
+          {/* Rating Badge */}
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={12} color={COLORS.deepPurple} />
+            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
           </View>
 
-          <Text style={styles.description} numberOfLines={2}>
-            {item.description}
-          </Text>
+          {/* Favorite Button */}
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={onToggleFavorite}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={20}
+              color={isFavorite ? COLORS.error : COLORS.cream}
+            />
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={16} color={COLORS.honeyGold} />
-            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="people" size={12} color={COLORS.mint} />
-              <Text style={styles.ratingBadgeText}>מומלץ</Text>
-            </View>
+        {/* Content Section */}
+        <View style={styles.contentContainer}>
+          <View style={styles.headerRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {item.name}
+            </Text>
+          </View>
+
+          <View style={styles.addressRow}>
+            <Ionicons name="location-sharp" size={14} color={COLORS.sage} />
+            <Text style={styles.address} numberOfLines={1}>
+              {getAddressText()}
+            </Text>
           </View>
 
           <View style={styles.tagsContainer}>
-            {item.tags.slice(0, 3).map((tag, index) => (
+            {item.tags.slice(0, 2).map((tag, index) => (
               <View key={index} style={styles.tag}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
-          </View>
-
-          <View style={styles.addressRow}>
-            <Ionicons name="location" size={14} color={COLORS.sage} />
-            <Text style={styles.address} numberOfLines={1}>
-              {getAddressText()}
-            </Text>
+            {item.tags.length > 2 && (
+              <Text style={styles.moreTagsText}>+{item.tags.length - 2}</Text>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -124,105 +132,122 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    width: 240,
+    width: 260,
     backgroundColor: COLORS.plum,
-    borderRadius: 20,
-    marginLeft: 12,
-    marginRight: 0,
-    elevation: 5,
+    borderRadius: 24,
+    elevation: 8,
     shadowColor: COLORS.midnight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    overflow: "hidden",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.lavenderBlush + "20",
+    borderColor: COLORS.lavenderBlush + "10",
+    marginVertical: 10,
+  },
+  imageContainer: {
+    height: 160,
+    width: "100%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    position: "relative",
   },
   image: {
     width: "100%",
-    height: 140,
+    height: "100%",
+    resizeMode: "cover",
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    height: 140,
-    backgroundColor: COLORS.deepPurple + "20",
-  },
-  textContainer: {
-    padding: 14,
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  name: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: COLORS.cream,
-    flexShrink: 1,
-  },
-  description: {
-    color: COLORS.lavenderBlush,
-    fontSize: 14,
-    marginBottom: 8,
-    lineHeight: 19,
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 4,
-  },
-  ratingText: {
-    marginLeft: 4,
-    color: COLORS.cream,
-    fontSize: 15,
-    fontWeight: "700",
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
   ratingBadge: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.mint + "25",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    marginLeft: 8,
+    backgroundColor: COLORS.honeyGold,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
     gap: 4,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  ratingBadgeText: {
-    color: COLORS.mint,
-    fontSize: 11,
-    fontWeight: "700",
+  ratingText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.deepPurple,
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(30, 27, 46, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  contentContainer: {
+    padding: 16,
+    gap: 8,
+  },
+  headerRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.cream,
+    textAlign: "right",
+    flex: 1,
   },
   tagsContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 10,
+    gap: 8,
+    marginTop: 4,
+    alignItems: "center",
   },
   tag: {
-    backgroundColor: COLORS.honeyGold + "30",
-    borderRadius: 12,
+    backgroundColor: COLORS.deepPurple,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: COLORS.honeyGold + "50",
+    borderColor: COLORS.lavenderBlush + "15",
   },
   tagText: {
-    color: COLORS.amber,
-    fontWeight: "700",
+    color: COLORS.lavenderBlush,
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  moreTagsText: {
+    color: COLORS.dustyRose,
     fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
   },
   addressRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 6,
+    opacity: 0.9,
   },
   address: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.sage,
+    color: COLORS.softWhite,
     fontWeight: "500",
+    textAlign: "right",
   },
 });

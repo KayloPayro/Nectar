@@ -55,20 +55,19 @@ export default function HomeScreen() {
         }
       : undefined;
     const result = await BusinessApiService.getAllBusinesses(params);
- 
-     if (result.success && result.businesses) {
-       console.log("✅ Businesses loaded:", result.businesses.length);
+
+    if (result.success && result.businesses) {
+      console.log("✅ Businesses loaded:", result.businesses.length);
       const mappedBusinesses = result.businesses.map((b: any) => ({
-       ...b,
+        ...b,
         id: b._id || b.id,
       }));
-     setBusinesses(mappedBusinesses);
-     setFilteredBusinesses(mappedBusinesses);
-     } else {
-       console.error("Failed to load businesses:", result.error);
-     }
+      setBusinesses(mappedBusinesses);
+      setFilteredBusinesses(mappedBusinesses);
+    } else {
+      console.error("Failed to load businesses:", result.error);
+    }
   };
-
 
   const loadUserData = async () => {
     const user = await AuthService.getCurrentUser();
@@ -81,7 +80,7 @@ export default function HomeScreen() {
 
       if (data.selectedAddressId) {
         const addr = data.addresses.find(
-          (a) => a.id === data.selectedAddressId
+          (a) => a.id === data.selectedAddressId,
         );
         if (addr) {
           setSelectedAddress(addr);
@@ -116,7 +115,7 @@ export default function HomeScreen() {
   const { filterByCategory } = useBusinessFilters(
     filteredBusinesses,
     userCoords,
-    favorites
+    favorites,
   );
 
   // Handlers
@@ -173,107 +172,145 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.deepPurple} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoRow}>
-            <TouchableOpacity
-              onPress={async () => {
-                await AuthService.logout();
-                router.replace("/" as any);
-              }}
-              style={styles.logoutButton}
-            >
-              <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
-            </TouchableOpacity>
-            <Text style={styles.logoText}>Nectar</Text>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Hero Section - Top Background */}
+        <View style={styles.heroSection}>
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+            <View style={styles.logoRow}>
+              <TouchableOpacity
+                onPress={async () => {
+                  await AuthService.logout();
+                  router.replace("/" as any);
+                }}
+                style={styles.logoutButton}
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={22}
+                  color={COLORS.error}
+                />
+              </TouchableOpacity>
+              <Text style={styles.logoText}>Nectar</Text>
+            </View>
+
+            <AddressSelector
+              selectedAddress={selectedAddress}
+              savedAddresses={savedAddresses}
+              isDropdownVisible={addressDropdownVisible}
+              onToggleDropdown={() =>
+                setAddressDropdownVisible(!addressDropdownVisible)
+              }
+              onSelectAddress={handleSelectAddress}
+              onAddNewAddress={handleAddNewAddress}
+            />
           </View>
 
-          <AddressSelector
-            selectedAddress={selectedAddress}
-            savedAddresses={savedAddresses}
-            isDropdownVisible={addressDropdownVisible}
-            onToggleDropdown={() =>
-              setAddressDropdownVisible(!addressDropdownVisible)
-            }
-            onSelectAddress={handleSelectAddress}
-            onAddNewAddress={handleAddNewAddress}
+          {/* Greeting Section */}
+          <View style={styles.greetingContainer}>
+            <Text style={styles.greetingText}>
+              היי, {currentUser?.name?.split(" ")[0] || "אורח"} 👋
+            </Text>
+            <Text style={styles.subGreetingText}>מה מתחשק לך לגלות היום?</Text>
+          </View>
+
+          {/* Search Bar Container - Sitting inside Hero */}
+          <View style={styles.searchContainer}>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onBarcodePress={handleOpenQRDisplay}
+            />
+          </View>
+        </View>
+
+        {/* Categories Content */}
+        <View style={styles.contentContainer}>
+          {favorites.length > 0 && (
+            <CategorySection
+              title="המועדפים שלך"
+              icon="heart"
+              data={filterByCategory("favorites")}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onCardPress={handleCardPress}
+            />
+          )}
+
+          <CategorySection
+            title="קרוב אליך"
+            icon="location"
+            data={filterByCategory("nearby")}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onCardPress={handleCardPress}
+          />
+
+          <CategorySection
+            title="עסקים מומלצים"
+            icon="flame"
+            data={filterByCategory("recommended")}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onCardPress={handleCardPress}
+          />
+
+          <CategorySection
+            title="הכי פופולריים"
+            icon="trophy"
+            data={filterByCategory("premium")}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onCardPress={handleCardPress}
           />
         </View>
-      </View>
 
-      {/* Search Bar */}
-      <SearchBar
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        onBarcodePress={handleOpenQRDisplay}
-      />
-
-      {/* Categories */}
-      {favorites.length > 0 && (
-        <CategorySection
-          title="המועדפים שלך"
-          icon="heart"
-          data={filterByCategory("favorites")}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onCardPress={handleCardPress}
+        <BenefitQRDisplay
+          visible={qrModalVisible}
+          onClose={() => setQrModalVisible(false)}
         />
-      )}
-
-      <CategorySection
-        title="קרוב אליך"
-        icon="location"
-        data={filterByCategory("nearby")}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-        onCardPress={handleCardPress}
-      />
-
-      <CategorySection
-        title="עסקים מומלצים"
-        icon="flame"
-        data={filterByCategory("recommended")}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-        onCardPress={handleCardPress}
-      />
-
-      <CategorySection
-        title="הכי פופולריים"
-        icon="trophy"
-        data={filterByCategory("premium")}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-        onCardPress={handleCardPress}
-      />
-
-      <BenefitQRDisplay
-        visible={qrModalVisible}
-        onClose={() => setQrModalVisible(false)}
-      />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
+    backgroundColor: COLORS.midnight, // רקע כהה יותר לכל המסך
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  heroSection: {
     backgroundColor: COLORS.deepPurple,
-  },
-  header: {
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    zIndex: 1000,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: COLORS.honeyGold,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    zIndex: 10,
   },
-  logoContainer: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 24,
   },
   logoRow: {
     flexDirection: "row-reverse",
@@ -281,19 +318,43 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
     color: COLORS.honeyGold,
-    textShadowColor: COLORS.amber,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 0.5,
   },
   logoutButton: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 20,
-    backgroundColor: COLORS.plum,
+    backgroundColor: "rgba(255,255,255,0.1)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  greetingContainer: {
+    marginBottom: 24,
+    paddingRight: 4,
+  },
+  greetingText: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: COLORS.cream,
+    textAlign: "right",
+    marginBottom: 4,
+  },
+  subGreetingText: {
+    fontSize: 16,
+    color: COLORS.lavenderBlush,
+    textAlign: "right",
+    opacity: 0.9,
+  },
+  searchContainer: {
+    marginTop: 4,
+  },
+  contentContainer: {
+    marginTop: 20,
+    gap: 10, // מרווח בין הסקשנים
   },
 });
