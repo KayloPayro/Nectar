@@ -240,10 +240,12 @@ export default function BusinessScreen() {
         setSuccessModalVisible(true);
       } else {
         alert(result.error || "שdsdsdגיאה ביצירת קוד");
+        alert(result.error || "שגיאה ביצירת קוד");
       }
     } catch (error) {
       console.error("❌ Redeem error:", error);
       alert("שגיאה ביצירת קודsdsdaad");
+      alert("שגיאה ביצירת קוד");
     }
   };
 

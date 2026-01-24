@@ -41,7 +41,9 @@ export default function BusinessProfileSetup() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [street, setStreet] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [image, setImage] = useState<string | null>(null); // שונה מ-String ריק ל-null
@@ -74,7 +76,8 @@ export default function BusinessProfileSetup() {
       name.trim() !== "" &&
       description.trim() !== "" &&
       category !== "" &&
-      address.trim() !== "" &&
+      city.trim() !== "" &&
+      street.trim() !== "" &&
       phone.trim() !== ""
     );
   };
@@ -99,28 +102,18 @@ export default function BusinessProfileSetup() {
       .map((t) => t.trim())
       .filter((t) => t !== "");
 
+    // ברירת מחדל
     let finalCoordinates = { lat: 32.0656, lng: 34.7748 };
-    let finalCity = "תל אביב";
 
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const geocoded = await Location.geocodeAsync(address);
-        if (geocoded.length > 0) {
-          finalCoordinates = {
-            lat: geocoded[0].latitude,
-            lng: geocoded[0].longitude,
-          };
-
-          const reverse = await Location.reverseGeocodeAsync({
-            latitude: finalCoordinates.lat,
-            longitude: finalCoordinates.lng,
-          });
-
-          if (reverse.length > 0) {
-            finalCity = reverse[0].city || reverse[0].subregion || finalCity;
-          }
-        }
+      // המרת הכתובת שהוזנה לקואורדינטות
+      const fullAddress = `${street}, ${city}`;
+      const geocoded = await Location.geocodeAsync(fullAddress);
+      if (geocoded.length > 0) {
+        finalCoordinates = {
+          lat: geocoded[0].latitude,
+          lng: geocoded[0].longitude,
+        };
       }
     } catch (error) {
       console.log("Geocoding error:", error);
@@ -131,8 +124,8 @@ export default function BusinessProfileSetup() {
       description,
       category,
       address: {
-        street: address,
-        city: finalCity,
+        street: street,
+        city: city,
         coordinates: finalCoordinates,
       },
       phone,
@@ -162,6 +155,38 @@ export default function BusinessProfileSetup() {
       ]);
     } else {
       Alert.alert("שגיאה", result.error || "שגיאה ביצירת פרופיל");
+    }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    setIsGeocoding(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("שגיאה", "נדרשת הרשאת מיקום");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      const reverseGeocoded = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (reverseGeocoded.length > 0) {
+        const addr = reverseGeocoded[0];
+        setCity(addr.city || addr.subregion || "");
+        setStreet(`${addr.street || ""} ${addr.streetNumber || ""}`.trim());
+      } else {
+        Alert.alert("שגיאה", "לא הצלחנו לזהות את הכתובת המדויקת");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("שגיאה", "אירעה שגיאה באיתור המיקום");
+    } finally {
+      setIsGeocoding(false);
     }
   };
 
@@ -273,11 +298,50 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* כתובת */}
+          {/* מיקום וכתובת */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              כתובת <Text style={styles.required}>*</Text>
+              מיקום העסק <Text style={styles.required}>*</Text>
             </Text>
+
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={handleUseCurrentLocation}
+              disabled={isGeocoding}
+            >
+              {isGeocoding ? (
+                <ActivityIndicator size="small" color={COLORS.deepPurple} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="navigate"
+                    size={20}
+                    color={COLORS.deepPurple}
+                  />
+                  <Text style={styles.locationButtonText}>
+                    השתמש במיקום הנוכחי שלי
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={[styles.inputContainer, { marginBottom: 12 }]}>
+              <Ionicons
+                name="business"
+                size={20}
+                color={COLORS.dustyRose}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="עיר (לדוגמא: תל אביב)"
+                placeholderTextColor={COLORS.dustyRose}
+                value={city}
+                onChangeText={setCity}
+                textAlign="right"
+              />
+            </View>
+
             <View style={styles.inputContainer}>
               <Ionicons
                 name="location"
@@ -287,10 +351,10 @@ export default function BusinessProfileSetup() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="לדוגמא: רחוב הרצל 10, תל אביב"
+                placeholder="רחוב ומספר (לדוגמא: הרצל 10)"
                 placeholderTextColor={COLORS.dustyRose}
-                value={address}
-                onChangeText={setAddress}
+                value={street}
+                onChangeText={setStreet}
                 textAlign="right"
               />
             </View>
@@ -484,6 +548,21 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: COLORS.deepPurple,
     fontWeight: "800",
+  },
+  locationButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.mint,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  locationButtonText: {
+    color: COLORS.deepPurple,
+    fontWeight: "700",
+    fontSize: 15,
   },
 
   submitButtonDisabled: {

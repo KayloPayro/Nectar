@@ -9,11 +9,16 @@ import { useRouter } from "expo-router";
 import Fuse from "fuse.js";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,6 +44,9 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addAddressModalVisible, setAddAddressModalVisible] = useState(false);
+  const [manualAddress, setManualAddress] = useState("");
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
 
   // Initialize
   useEffect(() => {
@@ -139,7 +147,7 @@ export default function HomeScreen() {
   };
   const handleCardPress = (item: Business) => {
     // ✅ תיקון: השתמש ב-businessId תמיד
-    const id = item._id;
+    const id = item.id;
 
     if (!id) {
       console.error("❌ Business has no businessId:", item);
@@ -168,9 +176,14 @@ export default function HomeScreen() {
     loadBusinesses();
   };
 
-  const handleAddNewAddress = async () => {
+  const handleAddNewAddress = () => {
     setAddressDropdownVisible(false);
+    setAddAddressModalVisible(true);
+    setManualAddress("");
+  };
 
+  const handleUseCurrentLocation = async () => {
+    setIsAddingAddress(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -178,7 +191,6 @@ export default function HomeScreen() {
         return;
       }
 
-      setLoading(true);
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
@@ -199,12 +211,53 @@ export default function HomeScreen() {
 
         setSavedAddresses((prev) => [...prev, newAddress]);
         handleSelectAddress(newAddress);
+        setAddAddressModalVisible(false);
       }
     } catch (error) {
       console.error("Location error:", error);
       Alert.alert("שגיאה", "לא ניתן לאתר את המיקום הנוכחי");
     } finally {
-      setLoading(false);
+      setIsAddingAddress(false);
+    }
+  };
+
+  const handleSaveManualAddress = async () => {
+    if (!manualAddress.trim()) return;
+
+    setIsAddingAddress(true);
+    try {
+      const geocoded = await Location.geocodeAsync(manualAddress);
+      if (geocoded.length > 0) {
+        const { latitude, longitude } = geocoded[0];
+        const reverse = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+
+        if (reverse.length > 0) {
+          const addr = reverse[0];
+          const newAddress: Address = {
+            id: Date.now().toString(),
+            label: addr.city || "כתובת חדשה",
+            street: addr.street || manualAddress,
+            city: addr.city || addr.subregion || "",
+            coordinates: { lat: latitude, lng: longitude },
+          };
+
+          setSavedAddresses((prev) => [...prev, newAddress]);
+          handleSelectAddress(newAddress);
+          setAddAddressModalVisible(false);
+        } else {
+          Alert.alert("שגיאה", "לא הצלחנו למצוא פרטים מלאים על הכתובת");
+        }
+      } else {
+        Alert.alert("כתובת לא נמצאה", "אנא נסה להזין כתובת מדויקת יותר");
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      Alert.alert("שגיאה", "אירעה שגיאה בחיפוש הכתובת");
+    } finally {
+      setIsAddingAddress(false);
     }
   };
 
@@ -314,6 +367,96 @@ export default function HomeScreen() {
           onClose={() => setQrModalVisible(false)}
         />
       </ScrollView>
+
+      {/* Add Address Modal */}
+      <Modal
+        visible={addAddressModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddAddressModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setAddAddressModalVisible(false)}
+          />
+
+          <View style={styles.addAddressModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>הוספת כתובת חדשה</Text>
+              <TouchableOpacity
+                onPress={() => setAddAddressModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={COLORS.dustyRose} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>בחר כיצד להוסיף את הכתובת</Text>
+
+            {/* Current Location Button */}
+            <TouchableOpacity
+              style={styles.currentLocationBtn}
+              onPress={handleUseCurrentLocation}
+              disabled={isAddingAddress}
+            >
+              {isAddingAddress ? (
+                <ActivityIndicator color={COLORS.deepPurple} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="navigate"
+                    size={20}
+                    color={COLORS.deepPurple}
+                  />
+                  <Text style={styles.currentLocationText}>
+                    השתמש במיקום הנוכחי שלי
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>או</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Manual Input */}
+            <Text style={styles.inputLabel}>הזן כתובת ידנית</Text>
+            <View style={styles.manualInputContainer}>
+              <Ionicons name="search" size={20} color={COLORS.dustyRose} />
+              <TextInput
+                style={styles.manualInput}
+                placeholder="לדוגמא: דיזנגוף 50, תל אביב"
+                placeholderTextColor={COLORS.dustyRose + "80"}
+                value={manualAddress}
+                onChangeText={setManualAddress}
+                textAlign="right"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.saveAddressBtn,
+                (!manualAddress.trim() || isAddingAddress) &&
+                  styles.disabledBtn,
+              ]}
+              onPress={handleSaveManualAddress}
+              disabled={!manualAddress.trim() || isAddingAddress}
+            >
+              {isAddingAddress ? (
+                <ActivityIndicator color={COLORS.deepPurple} />
+              ) : (
+                <Text style={styles.saveAddressText}>חפש ושמור כתובת</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -393,5 +536,112 @@ const styles = StyleSheet.create({
   contentContainer: {
     marginTop: 20,
     gap: 10, // מרווח בין הסקשנים
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  addAddressModal: {
+    backgroundColor: COLORS.plum,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    paddingBottom: 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: COLORS.cream,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: COLORS.lavenderBlush,
+    marginBottom: 24,
+    textAlign: "right",
+  },
+  currentLocationBtn: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.honeyGold,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 10,
+    marginBottom: 20,
+  },
+  currentLocationText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.deepPurple,
+  },
+  dividerContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.lavenderBlush + "20",
+  },
+  dividerText: {
+    color: COLORS.dustyRose,
+    fontSize: 14,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.cream,
+    marginBottom: 8,
+    textAlign: "right",
+  },
+  manualInputContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    backgroundColor: COLORS.deepPurple,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.lavenderBlush + "30",
+    marginBottom: 20,
+  },
+  manualInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: COLORS.cream,
+    marginRight: 10,
+  },
+  saveAddressBtn: {
+    backgroundColor: COLORS.mint,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  saveAddressText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.deepPurple,
+  },
+  disabledBtn: {
+    opacity: 0.5,
+    backgroundColor: COLORS.dustyRose,
   },
 });
