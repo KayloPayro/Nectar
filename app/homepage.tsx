@@ -55,16 +55,20 @@ export default function HomeScreen() {
         }
       : undefined;
     const result = await BusinessApiService.getAllBusinesses(params);
-
-    if (result.success && result.businesses) {
-      console.log("✅ Businesses loaded:", result.businesses.length);
-      setBusinesses(result.businesses);
-      setFilteredBusinesses(result.businesses);
-    } else {
-      console.error("Failed to load businesses:", result.error);
-    }
-    setLoading(false);
+ 
+     if (result.success && result.businesses) {
+       console.log("✅ Businesses loaded:", result.businesses.length);
+      const mappedBusinesses = result.businesses.map((b: any) => ({
+       ...b,
+        id: b._id || b.id,
+      }));
+     setBusinesses(mappedBusinesses);
+     setFilteredBusinesses(mappedBusinesses);
+     } else {
+       console.error("Failed to load businesses:", result.error);
+     }
   };
+
 
   const loadUserData = async () => {
     const user = await AuthService.getCurrentUser();

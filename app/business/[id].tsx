@@ -366,7 +366,7 @@ export default function BusinessScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.deepPurple} />
 
-      {/* Animated Header */}
+      {/* Animated Header - Absolute Position */}
       <Animated.View
         style={[styles.headerImageContainer, { height: headerHeight }]}
       >
@@ -412,6 +412,7 @@ export default function BusinessScreen() {
 
       <Animated.ScrollView
         style={styles.contentContainer}
+        contentContainerStyle={{ paddingTop: HEADER_MAX_HEIGHT, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -658,8 +659,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.deepPurple,
   },
   headerImageContainer: {
-    height: 280,
-    position: "relative",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    overflow: "hidden",
   },
   headerImage: {
     width: "100%",
@@ -696,7 +701,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.plum,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    marginTop: -30,
   },
   titleRow: {
     flexDirection: "row-reverse",

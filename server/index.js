@@ -17,13 +17,15 @@ const app = express();
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// ✅ תיקון: הגדלת נפח הבקשה המותר כדי לקבל תמונות Base64
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // הגדלתי ל-500 כדי שלא תיחסם בקלות בזמן בדיקות והעלאת תמונות
   message: "Too many requests from this IP, please try again later.",
 });
 app.use("/api/", limiter);
@@ -68,9 +70,10 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {  // ✅ הוסף '0.0.0.0' כאן!
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Nectar API Server running on port ${PORT}`);
   console.log(`📍 Local: http://localhost:${PORT}/api/health`);
   console.log(`📍 Network: http://192.168.1.234:${PORT}/api/health`);
 });
+
 module.exports = app;

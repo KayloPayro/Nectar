@@ -1,11 +1,14 @@
 // app/business-profile-setup.tsx
+import { COLORS } from "@/colors/colors";
 import { BusinessApiService } from "@/services/businessApiService";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker"; // ייבוא הספרייה החדשה
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,8 +20,6 @@ import {
   View,
 } from "react-native";
 import { AuthService } from "../services/authService";
-
-import { COLORS } from "@/colors/colors";
 
 const CATEGORIES = [
   "מסעדה",
@@ -42,8 +43,30 @@ export default function BusinessProfileSetup() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [image, setImage] = useState("https://picsum.photos/400/300");
+  const [image, setImage] = useState<string | null>(null); // שונה מ-String ריק ל-null
   const [tags, setTags] = useState("");
+
+  const pickImage = async () => {
+    // בקשת הרשאה
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("שגיאה", "סליחה, אנחנו צריכים הרשאות לגלריה כדי שזה יעבוד");
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7, // איכות טובה אך לא כבדה מדי
+      base64: true, // חשוב מאוד כדי לשלוח ל-DB
+    });
+
+    if (!result.canceled) {
+      // אנחנו שומרים את ה-Base64 עם הקידומת המתאימה
+      setImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
 
   const isFormValid = () => {
     return (
@@ -70,29 +93,23 @@ export default function BusinessProfileSetup() {
       return;
     }
 
-    console.log("📝 User ID:", user.id);
-
     const tagsArray = tags
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t !== "");
 
-    // ✅ מבנה נכון לפי מה שהשרת מצפה
     const businessData = {
       name,
       description,
       category,
       address: {
-        street: "רחוב רוטשילד 45",
-        city: "תל אביב",
-        coordinates: {
-          lat: 32.0656,
-          lng: 34.7748,
-        },
+        street: address, // משתמש בכתובת שהוזנה בטופס
+        city: "תל אביב", // כאן תוכל להוסיף לוגיקה לפיצול עיר/רחוב
+        coordinates: { lat: 32.0656, lng: 34.7748 },
       },
       phone,
       email: email || user.email,
-      image,
+      image: image || "https://picsum.photos/400/300", // אם אין תמונה נשים דיפולט
       tags: tagsArray,
       openingHours: {
         sunday: { open: "09:00", close: "18:00" },
@@ -105,14 +122,10 @@ export default function BusinessProfileSetup() {
       },
     };
 
-    console.log("📤 Sending business data:", businessData);
-
     const result = await BusinessApiService.registerBusiness(businessData);
-
     setLoading(false);
 
     if (result.success) {
-      console.log("✅ Business created successfully!");
       Alert.alert("הצלחה!", "הפרופיל נוצר בהצלחה", [
         {
           text: "אישור",
@@ -120,7 +133,6 @@ export default function BusinessProfileSetup() {
         },
       ]);
     } else {
-      console.error("❌ Failed to create business:", result.error);
       Alert.alert("שגיאה", result.error || "שגיאה ביצירת פרופיל");
     }
   };
@@ -132,7 +144,6 @@ export default function BusinessProfileSetup() {
     >
       <StatusBar barStyle="light-content" backgroundColor={COLORS.deepPurple} />
       <ScrollView style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -144,7 +155,21 @@ export default function BusinessProfileSetup() {
         </View>
 
         <View style={styles.content}>
-          {/* Name */}
+          <View style={styles.imageUploadSection}>
+            <Text style={styles.label}>תמונת עסק</Text>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              {image ? (
+                <Image source={{ uri: image }} style={styles.previewImage} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Ionicons name="camera" size={40} color={COLORS.dustyRose} />
+                  <Text style={styles.imagePickerText}>הוסף תמונה מייצגת</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* שם העסק */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               שם העסק <Text style={styles.required}>*</Text>
@@ -167,7 +192,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Description */}
+          {/* תיאור */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               תיאור <Text style={styles.required}>*</Text>
@@ -192,7 +217,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Category */}
+          {/* קטגוריה */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               קטגוריה <Text style={styles.required}>*</Text>
@@ -220,7 +245,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Address */}
+          {/* כתובת */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               כתובת <Text style={styles.required}>*</Text>
@@ -243,7 +268,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Phone */}
+          {/* טלפון */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               טלפון <Text style={styles.required}>*</Text>
@@ -267,7 +292,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Email */}
+          {/* אימייל */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>אימייל (אופציונלי)</Text>
             <View style={styles.inputContainer}>
@@ -290,7 +315,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Tags */}
+          {/* תגיות */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>תגיות (הפרד בפסיקים)</Text>
             <View style={styles.inputContainer}>
@@ -311,7 +336,7 @@ export default function BusinessProfileSetup() {
             </View>
           </View>
 
-          {/* Submit Button */}
+          {/* כפתור שליחה */}
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -432,6 +457,50 @@ const styles = StyleSheet.create({
     color: COLORS.deepPurple,
     fontWeight: "800",
   },
+
+  submitButtonDisabled: {
+    backgroundColor: COLORS.dustyRose,
+    opacity: 0.5,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.deepPurple,
+  },
+  imageUploadSection: {
+    marginBottom: 24,
+    alignItems: "center",
+  },
+  imagePicker: {
+    width: "100%",
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: COLORS.plum,
+    borderStyle: "dashed",
+    borderWidth: 2,
+    borderColor: COLORS.dustyRose,
+    overflow: "hidden",
+  },
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  imagePickerText: {
+    color: COLORS.dustyRose,
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+
+  // עדכון קטן ל-submitButton כדי שייראה טוב יותר עם התמונה מעליו
   submitButton: {
     flexDirection: "row",
     backgroundColor: COLORS.honeyGold,
@@ -446,16 +515,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-  },
-  submitButtonDisabled: {
-    backgroundColor: COLORS.dustyRose,
-    opacity: 0.5,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  submitButtonText: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.deepPurple,
   },
 });
