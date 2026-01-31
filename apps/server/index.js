@@ -14,6 +14,9 @@ const customerRoutes = require("./routes/customer");
 
 const app = express();
 
+// Trust proxy is required for express-rate-limit when behind a proxy
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
